@@ -29,6 +29,8 @@ jobs:
     name: AI evaluation (Anthropic, quality gate)
     needs: unit-tests
     runs-on: ubuntu-latest
+    outputs:
+      site_ready: ${{ steps.site.outputs.ready }}
     env:
       ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
       # Optional repo variable; falls back to the default model when unset.
@@ -55,5 +57,40 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: evaluation-report
-          path: reports/latest.json
+          path: |
+            reports/latest.json
+            reports/history.jsonl
+            reports/report.html
           if-no-files-found: ignore
+      # Publish only from master pushes, never from PRs. Runs even when the quality gate
+      # failed, so a failing report is visible too.
+      - name: Prepare Pages site
+        id: site
+        if: always() && env.HAS_API_KEY == 'true' && github.event_name == 'push' && github.ref == 'refs/heads/master' && hashFiles('reports/report.html') != ''
+        run: |
+          mkdir site
+          cp reports/report.html site/index.html
+          echo "ready=true" >> "$GITHUB_OUTPUT"
+      - name: Upload Pages artifact
+        if: steps.site.outputs.ready == 'true'
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+  deploy-report:
+    name: Publish trend report (GitHub Pages)
+    needs: ai-evaluation
+    if: ${{ always() && needs.ai-evaluation.outputs.site_ready == 'true' }}
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    concurrency:
+      group: pages
+      cancel-in-progress: false
+    steps:
+      - id: deploy
+        uses: actions/deploy-pages@v4
