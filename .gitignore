@@ -6,4 +6,5 @@ __pycache__/
 *.egg-info/
 reports/*
 !reports/.gitkeep
+!reports/baseline.json
 .DS_Store

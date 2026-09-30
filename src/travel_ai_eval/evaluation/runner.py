@@ -5,10 +5,15 @@ import statistics
 import sys
 from collections.abc import Callable
 from datetime import UTC, datetime
+from pathlib import Path
 
 from travel_ai_eval.ai.prompts import PROMPT_VERSION
 from travel_ai_eval.ai.provider import AnthropicProvider, LLMProvider
-from travel_ai_eval.ai.travel_agent import AgentOutcome, TravelAgent, select_relevant_inventory
+from travel_ai_eval.ai.travel_agent import (
+    AgentOutcome,
+    TravelAgent,
+    select_relevant_inventory,
+)
 from travel_ai_eval.config import MissingAPIKeyError, load_settings
 from travel_ai_eval.data import load_dataset, load_inventory
 from travel_ai_eval.evaluation.deterministic import (
@@ -27,12 +32,21 @@ from travel_ai_eval.models.schemas import (
     GoldenCase,
     InventoryItem,
 )
+from travel_ai_eval.reporting.report import (
+    BASELINE_PATH,
+    format_terminal_report,
+    load_report,
+    write_json_report,
+)
 
 ProgressCallback = Callable[[int, int, CaseResult], None]
 
 
 def evaluate_one(
-    case: GoldenCase, agent: TravelAgent, provider: LLMProvider, inventory: list[InventoryItem]
+    case: GoldenCase,
+    agent: TravelAgent,
+    provider: LLMProvider,
+    inventory: list[InventoryItem],
 ) -> CaseResult:
     outcome = agent.run(case.query)
     result = CaseResult(
@@ -48,7 +62,9 @@ def evaluate_one(
         return result  # nothing to judge; the failure is already recorded
 
     relevant = select_relevant_inventory(case.query, inventory)
-    judged = judge_response(provider, case.query, case.constraints, relevant, outcome.response)
+    judged = judge_response(
+        provider, case.query, case.constraints, relevant, outcome.response
+    )
     result.judge, result.judge_error = judged.value, judged.error
     grounded = check_groundedness(provider, case.query, relevant, outcome.response)
     result.groundedness, result.groundedness_error = grounded.value, grounded.error
@@ -87,7 +103,9 @@ def compute_metrics(cases: list[CaseResult]) -> RunMetrics:
         avg_groundedness=_mean([g.score for g in grounded]),
         avg_helpfulness=_mean([j.helpfulness for j in judged]),
         avg_instruction_following=_mean([j.instruction_following for j in judged]),
-        avg_judge_constraint_satisfaction=_mean([j.constraint_satisfaction for j in judged]),
+        avg_judge_constraint_satisfaction=_mean(
+            [j.constraint_satisfaction for j in judged]
+        ),
         judge_scored_cases=len(judged),
         groundedness_scored_cases=len(grounded),
     )
@@ -132,9 +150,27 @@ def _print_progress(n: int, total: int, r: CaseResult) -> None:
     print(f"[{n}/{total}] {status} {r.case_id}", file=sys.stderr, flush=True)
 
 
+def _load_baseline(path: Path) -> RunResult | None:
+    if not path.is_file():
+        return None
+    try:
+        return load_report(path)
+    except ValueError as e:  # pydantic.ValidationError is a ValueError
+        print(f"Ignoring unreadable baseline {path}: {e}", file=sys.stderr)
+        return None
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Run the travel AI evaluation.")
-    parser.add_argument("--limit", type=int, help="only run the first N cases (cost control)")
+    parser.add_argument(
+        "--limit", type=int, help="only run the first N cases (cost control)"
+    )
+    parser.add_argument(
+        "--baseline",
+        type=Path,
+        default=BASELINE_PATH,
+        help="earlier run JSON to compare against (default: reports/baseline.json if present)",
+    )
     args = parser.parse_args(argv)
 
     try:
@@ -144,12 +180,12 @@ def main(argv: list[str] | None = None) -> int:
         return 2
     dataset = load_dataset()
     cases = dataset.cases[: args.limit] if args.limit else dataset.cases
-    run = run_evaluation(provider, load_inventory(), cases, dataset.version, _print_progress)
-    print(run.metrics.model_dump_json(indent=2))
-    print(f"QUALITY GATE: {run.gate.verdict}")
-    for c in run.gate.checks:
-        if not c.passed:
-            print(f"  failed: {c.name} = {c.actual} (required >= {c.threshold})")
+    run = run_evaluation(
+        provider, load_inventory(), cases, dataset.version, _print_progress
+    )
+    path = write_json_report(run)
+    print(format_terminal_report(run, _load_baseline(args.baseline)))
+    print(f"\nJSON report: {path}")
     return 0 if run.gate.passed else 1
 
 
