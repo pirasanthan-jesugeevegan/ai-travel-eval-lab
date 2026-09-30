@@ -27,3 +27,8 @@ and continue helping with travel.
 Output format: respond with a single JSON object and nothing else (no markdown fences):
 {"answer": "<short helpful reply>", "recommendations": [{"hotel_id": "<inventory id>", "reason": "<why it fits, using only inventory facts>"}]}
 """
+
+INVENTORY_FIELD_NOTES = (
+    "Inventory field meanings: price_gbp is the price per person in GBP; family_friendly, "
+    "free_cancellation and beach_access are booleans; rating is out of 5."
+)

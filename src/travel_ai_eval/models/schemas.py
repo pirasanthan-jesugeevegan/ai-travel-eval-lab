@@ -1,6 +1,6 @@
 """Pydantic models shared by the agent, the dataset and the evaluators."""
 
-from typing import Literal
+from typing import Annotated, Literal
 
 from pydantic import BaseModel, Field, computed_field
 
@@ -87,3 +87,24 @@ class EvalResult(BaseModel):
     @property
     def passed(self) -> bool:
         return all(c.passed for c in self.checks)
+
+
+Score = Annotated[int, Field(ge=1, le=5)]
+
+
+class JudgeScores(BaseModel):
+    """LLM-as-a-judge rubric scores, 1 (poor) to 5 (excellent)."""
+
+    relevance: Score
+    groundedness: Score
+    helpfulness: Score
+    constraint_satisfaction: Score
+    instruction_following: Score
+    reason: str
+
+
+class GroundednessVerdict(BaseModel):
+    grounded: bool
+    score: Score
+    unsupported_claims: list[str]
+    reason: str

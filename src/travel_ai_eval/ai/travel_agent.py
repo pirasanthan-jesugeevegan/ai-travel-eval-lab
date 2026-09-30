@@ -1,13 +1,13 @@
 """Travel recommendation agent: select inventory -> ask the model -> validate."""
 
 import json
-import re
 from dataclasses import dataclass
 
 from pydantic import ValidationError
 
 from travel_ai_eval.ai.prompts import SYSTEM_PROMPT
 from travel_ai_eval.ai.provider import LLMError, LLMProvider
+from travel_ai_eval.ai.structured import parse_model
 from travel_ai_eval.models.schemas import InventoryItem, TravelResponse
 
 
@@ -39,11 +39,7 @@ def build_user_message(query: str, inventory: list[InventoryItem]) -> str:
 
 def parse_response(text: str) -> TravelResponse:
     """Parse model text into TravelResponse. Tolerates markdown fences and surrounding prose."""
-    cleaned = re.sub(r"^```(?:json)?\s*|\s*```$", "", text.strip())
-    start, end = cleaned.find("{"), cleaned.rfind("}")
-    if start == -1 or end < start:
-        raise ValueError("no JSON object found in model output")
-    return TravelResponse.model_validate_json(cleaned[start : end + 1])
+    return parse_model(text, TravelResponse)
 
 
 class TravelAgent:
