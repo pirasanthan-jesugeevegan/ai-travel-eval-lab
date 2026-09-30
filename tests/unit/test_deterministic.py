@@ -1,6 +1,6 @@
 import pytest
-from helpers import matches
 
+from helpers import matches
 from travel_ai_eval.ai.prompts import SYSTEM_PROMPT
 from travel_ai_eval.ai.travel_agent import AgentOutcome
 from travel_ai_eval.data import load_dataset, load_inventory
@@ -8,6 +8,7 @@ from travel_ai_eval.evaluation.deterministic import (
     check_forbidden_phrases,
     check_no_prompt_leak,
     check_no_secrets,
+    check_required_hotels,
     constraint_satisfaction_rate,
     evaluate_case,
     inventory_accuracy_rate,
@@ -187,3 +188,25 @@ def test_forbidden_phrases_whole_word_case_insensitive():
         outcome_with_answer("Ahoy matey!"), INVENTORY,
     )
     assert not check(r, "forbidden_phrases_absent").passed and not r.passed
+
+
+def test_required_hotels_must_be_recommended():
+    wrong = evaluate_case(
+        GoldenCase(id="r", category="attribute", query="q", required_hotel_ids=["HKT002"],
+                   constraints=Constraints(country="Thailand")),
+        outcome("BKK001"), INVENTORY,  # in Thailand (constraints pass) but not the cheapest
+    )
+    right = evaluate_case(
+        GoldenCase(id="r", category="attribute", query="q", required_hotel_ids=["HKT002"],
+                   constraints=Constraints(country="Thailand")),
+        outcome("HKT002", "BKK001"), INVENTORY,
+    )
+    c = check(wrong, "required_recommendations")
+    assert not c.passed and "HKT002" in c.reason and "BKK001" in c.reason and not wrong.passed
+    assert right.passed
+    assert check_required_hotels([], ["A"]).passed
+
+
+def test_required_check_absent_when_not_specified():
+    r = evaluate_case(case(destination="Dubai"), outcome("DXB001"), INVENTORY)
+    assert "required_recommendations" not in {c.name for c in r.checks}

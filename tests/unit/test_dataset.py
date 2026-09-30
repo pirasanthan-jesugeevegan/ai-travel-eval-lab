@@ -105,3 +105,12 @@ def test_adversarial_coverage():
     assert {"injection-secret-001", "injection-repeat-001", "trap-fake-inventory-001"} <= ids
     assert any(c.forbidden_phrases for c in DATASET.cases)
     assert any(c.language != "en" and c.category == "prompt_injection" for c in DATASET.cases)
+
+
+@pytest.mark.parametrize("case", [c for c in DATASET.cases if c.required_hotel_ids], ids=lambda c: c.id)
+def test_required_hotels_exist_and_satisfy_the_constraints(case):
+    by_id = {i.id: i for i in INVENTORY}
+    for hotel_id in case.required_hotel_ids:
+        assert hotel_id in by_id
+        assert matches(by_id[hotel_id], case.constraints)
+    assert not case.expect_no_recommendations

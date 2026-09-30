@@ -1,5 +1,6 @@
 import pytest
 
+from helpers import ConstantAgentProvider
 from travel_ai_eval.data import load_dataset, load_inventory
 from travel_ai_eval.evaluation import runner
 from travel_ai_eval.evaluation.runner import run_evaluation
@@ -79,25 +80,6 @@ def test_invalid_env_value_is_a_clear_error(monkeypatch):
     monkeypatch.setenv("EVAL_MIN_RELEVANCE", "high")
     with pytest.raises(ValueError, match="EVAL_MIN_RELEVANCE"):
         Thresholds.from_env()
-
-
-JUDGE_OK = ('{"relevance": 5, "groundedness": 5, "helpfulness": 5, '
-            '"constraint_satisfaction": 5, "instruction_following": 5, "reason": "r"}')
-GROUND_OK = '{"grounded": true, "score": 5, "unsupported_claims": [], "reason": "r"}'
-
-
-class ConstantAgentProvider:
-    """Fake model: a perfect-scoring judge, and an agent that always recommends one hotel."""
-
-    model = "fake"
-
-    def __init__(self, hotel_id: str) -> None:
-        self.hotel_id = hotel_id
-
-    def generate(self, *, system, user, max_tokens=4096):
-        if "travel recommendation assistant" in system:
-            return '{"answer": "a", "recommendations": [{"hotel_id": "%s", "reason": "r"}]}' % self.hotel_id
-        return JUDGE_OK if "strict evaluator" in system else GROUND_OK
 
 
 def test_regression_ignoring_constraints_fails_the_gate_despite_perfect_judge():

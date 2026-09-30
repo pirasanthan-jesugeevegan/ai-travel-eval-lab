@@ -37,8 +37,8 @@ from travel_ai_eval.reporting.report import (
     BASELINE_PATH,
     format_terminal_report,
     load_report,
-    write_json_report,
     save_run_outputs,
+    write_json_report,
 )
 
 ProgressCallback = Callable[[int, int, CaseResult], None]

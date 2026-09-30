@@ -33,7 +33,7 @@ class Thresholds(BaseModel):
                 try:
                     overrides[name] = float(raw)
                 except ValueError:
-                    raise ValueError(f"{ENV_PREFIX}{name.upper()} must be a number, got {raw!r}")
+                    raise ValueError(f"{ENV_PREFIX}{name.upper()} must be a number, got {raw!r}") from None
         return cls(**overrides)
 
 

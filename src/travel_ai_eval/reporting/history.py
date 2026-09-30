@@ -118,7 +118,7 @@ def append_history(entry: HistoryEntry, path: Path = HISTORY_PATH) -> bool:
 def changes_vs_previous(entries: list[HistoryEntry]) -> list[list[str]]:
     """For each run, which signature fields changed since the previous run (empty for the first)."""
     out: list[list[str]] = [[]]
-    for prev, cur in zip(entries, entries[1:]):
+    for prev, cur in zip(entries, entries[1:], strict=False):
         out.append(
             [
                 f"{f}: {getattr(prev.metadata, f)} → {getattr(cur.metadata, f)}"

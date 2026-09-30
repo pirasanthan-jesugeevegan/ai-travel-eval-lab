@@ -1,47 +1,7 @@
+from helpers import CASES, INVENTORY, ScriptedProvider
 from travel_ai_eval.ai.provider import LLMError
-from travel_ai_eval.data import load_dataset, load_inventory
+from travel_ai_eval.data import load_dataset
 from travel_ai_eval.evaluation.runner import compute_metrics, run_evaluation
-from travel_ai_eval.models.schemas import GoldenCase
-
-INVENTORY = load_inventory()
-CASES = [
-    GoldenCase(id="ok-1", category="normal", query="Dubai please",
-               constraints={"destination": "Dubai"}),
-    GoldenCase(id="ok-2", category="normal", query="Paris please",
-               constraints={"destination": "Paris"}),
-    GoldenCase(id="ok-3", category="normal", query="Rome please",
-               constraints={"destination": "Rome"}),
-]
-AGENT_OK = '{"answer": "a", "recommendations": [{"hotel_id": "%s", "reason": "r"}]}'
-JUDGE_OK = ('{"relevance": 4, "groundedness": 4, "helpfulness": 5, '
-            '"constraint_satisfaction": 5, "instruction_following": 3, "reason": "r"}')
-GROUND_OK = '{"grounded": true, "score": 5, "unsupported_claims": [], "reason": "r"}'
-
-
-class ScriptedProvider:
-    """Routes by system prompt: agent / judge / groundedness. `behaviour` may override per query."""
-
-    model = "fake-model"
-
-    def __init__(self, behaviour=None) -> None:
-        self.behaviour = behaviour or {}
-        self.calls = {"agent": 0, "judge": 0, "ground": 0}
-
-    def generate(self, *, system: str, user: str, max_tokens: int = 4096) -> str:
-        if "travel recommendation assistant" in system:
-            self.calls["agent"] += 1
-            for key, reply in self.behaviour.items():
-                if key in user:
-                    if isinstance(reply, Exception):
-                        raise reply
-                    return reply
-            hotel = next(h.id for h in INVENTORY if h.destination in user)
-            return AGENT_OK % hotel
-        if "strict evaluator" in system:
-            self.calls["judge"] += 1
-            return JUDGE_OK
-        self.calls["ground"] += 1
-        return GROUND_OK
 
 
 def run(provider, cases=CASES):

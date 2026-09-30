@@ -87,6 +87,7 @@ uv sync
 cp .env.example .env        # then set ANTHROPIC_API_KEY (and optionally ANTHROPIC_MODEL)
 
 uv run pytest                        # offline unit tests only, zero API calls
+uv run ruff check .                  # lint
 uv run pytest tests/evaluation -s    # full AI evaluation (real API calls, see Cost)
 uv run python -m travel_ai_eval.evaluation.runner            # same run via the CLI
 uv run python -m travel_ai_eval.evaluation.runner --limit 5  # cheap smoke run
@@ -262,6 +263,10 @@ The comparison is informational: the gate decides PASS/FAIL from absolute thresh
 
 ### Run history and trend report
 
+![Trend report: the dip in the middle is a deliberate regression demo](docs/report.png)
+
+The dip in the middle run is deliberate: I replaced the budget rule in the system prompt with "ignore price" to prove the gate catches a real regression.
+
 Every full run (not `--limit` runs) appends one line to `reports/history.jsonl`: metadata, metrics, the gate result with the thresholds that applied, the git commit, an optional label, and a per-case pass/fail summary. It then regenerates `reports/report.html`, a single self-contained file (inline SVG, no external assets, light and dark mode):
 
 - headline verdict and the five gated metrics, each with its change since the previous run,
@@ -311,11 +316,23 @@ src/travel_ai_eval/
   evaluation/          deterministic.py, llm_judge.py, groundedness.py,
                        thresholds.py, runner.py
   models/              schemas.py, results.py
-  reporting/           report.py
+  reporting/           report.py, history.py, html_report.py (+ html_common, html_tables, html_assets)
 tests/unit/            offline tests
 tests/evaluation/      paid AI evaluation (skips without a key)
 reports/               latest.json (generated, git-ignored), baseline.json
 ```
+
+## What building this taught me
+
+Things that actually happened while building and running it:
+
+1. **The judge needs the same context as the task.** The first judge scored a correct answer 2/5 on groundedness because its prompt did not say `price_gbp` is per person, so it called the claim unsupported. Sharing the field definitions between the agent and both judges fixed it.
+2. **Deterministic checks catch what the judge forgives.** An over-budget recommendation (£2400 against a £2000 limit) scored 4/5 on groundedness because every fact in it was true. Only the budget check fails it.
+3. **Tuning a prompt to lift one metric can break another.** Helpfulness sat at 4.2 because the judge kept marking down answers with no next step. Adding a "suggest a next step" instruction lifted it to about 4.6, but 1–2 of 41 replies then contained an extra JSON field followed by a self-correction, which the strict parser rejected (schema validity fell to 95–98%). Putting the instruction inside the output template fixed it. The strict parser stayed strict on purpose: schema validity is the metric that caught the problem. One clean run afterwards is encouraging, not proof.
+4. **The test can be wrong, not just the model.** A prompt-injection case expected no recommendations, but the model refused the injection and still answered the legitimate part of the request. I fixed the case (dataset 1.0.1) instead of the model.
+5. **A regression test must actually regress.** My first sabotage ("ignore budgets") did nothing because the model resisted it and the gate correctly passed. Replacing the constraint rule outright dropped constraint satisfaction from 100% to 85.7% and failed the gate with case-level reasons.
+6. **Infrastructure failures are not quality results.** An API billing failure once produced a 0% run that would have landed in the trend as a catastrophic regression. Runs where every call fails are now kept out of the history.
+7. **A suite that always passes says little.** Clean runs score 100% on the deterministic checks, so this dataset may be saturated for the current model. Harder cases are the next step (see Limitations).
 
 ## Limitations
 

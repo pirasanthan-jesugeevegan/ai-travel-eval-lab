@@ -1,8 +1,7 @@
 import pytest
-from test_runner import CASES, ScriptedProvider
-from test_thresholds import JUDGE_OK, ConstantAgentProvider
 
-from travel_ai_eval.data import load_dataset, load_inventory
+from helpers import CASES, INVENTORY, ConstantAgentProvider, PerfectJudgeProvider
+from travel_ai_eval.data import load_dataset
 from travel_ai_eval.evaluation.runner import run_evaluation
 from travel_ai_eval.reporting.report import (
     compare_runs,
@@ -10,17 +9,6 @@ from travel_ai_eval.reporting.report import (
     load_report,
     write_json_report,
 )
-
-INVENTORY = load_inventory()
-
-
-class PerfectJudgeProvider(ScriptedProvider):
-    """Sensible agent answers, judge scores all 5."""
-
-    def generate(self, *, system, user, max_tokens=4096):
-        if "strict evaluator" in system:
-            return JUDGE_OK
-        return super().generate(system=system, user=user, max_tokens=max_tokens)
 
 
 @pytest.fixture(scope="module")

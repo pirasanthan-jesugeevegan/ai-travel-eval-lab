@@ -1,11 +1,9 @@
 import json
 
 import pytest
-from test_report import PerfectJudgeProvider
-from test_runner import CASES
-from test_thresholds import ConstantAgentProvider
 
-from travel_ai_eval.data import load_dataset, load_inventory
+from helpers import CASES, INVENTORY, ConstantAgentProvider, PerfectJudgeProvider
+from travel_ai_eval.data import load_dataset
 from travel_ai_eval.evaluation.runner import run_evaluation
 from travel_ai_eval.reporting.history import (
     append_history,
@@ -16,8 +14,6 @@ from travel_ai_eval.reporting.history import (
 )
 from travel_ai_eval.reporting.html_report import render_html, write_html_report
 from travel_ai_eval.reporting.report import save_run_outputs
-
-INVENTORY = load_inventory()
 
 
 @pytest.fixture(scope="module")

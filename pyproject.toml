@@ -10,7 +10,10 @@ dependencies = [
 ]
 
 [dependency-groups]
-dev = ["pytest>=8"]
+dev = [
+    "pytest>=8",
+    "ruff>=0.16.9",
+]
 
 [build-system]
 requires = ["hatchling"]
@@ -23,3 +26,16 @@ packages = ["src/travel_ai_eval"]
 # Plain `pytest` is offline-only; run the paid suite explicitly: pytest tests/evaluation
 testpaths = ["tests/unit"]
 pythonpath = ["src"]
+
+[tool.ruff]
+line-length = 110
+src = ["src", "tests/unit"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP"]
+
+[tool.ruff.lint.per-file-ignores]
+# Inline HTML/SVG/CSS strings read better unwrapped.
+"src/travel_ai_eval/reporting/html_*.py" = ["E501"]
+"tests/**" = ["E501"]
+"src/travel_ai_eval/ai/prompts.py" = ["E501"]  # prompt text is not wrapped
