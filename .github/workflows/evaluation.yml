@@ -1,5 +1,10 @@
 name: Evaluation
 
+# CI makes no Anthropic calls on push or PR. The AI evaluation is run locally
+# (uv run python -m travel_ai_eval.evaluation.runner), its result is committed to
+# reports/history.jsonl, and CI publishes the trend report from that committed history.
+# The AI evaluation job below only runs when triggered by hand.
+
 on:
   push:
     branches: [master]
@@ -25,62 +30,29 @@ jobs:
       - run: uv sync --locked
       - run: uv run pytest tests/unit
 
-  ai-evaluation:
-    name: AI evaluation (Anthropic, quality gate)
+  build-report:
+    name: Build trend report from committed history (offline)
     needs: unit-tests
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
     runs-on: ubuntu-latest
-    outputs:
-      site_ready: ${{ steps.site.outputs.ready }}
-    env:
-      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-      # Optional repo variable; falls back to the default model when unset.
-      ANTHROPIC_MODEL: ${{ vars.ANTHROPIC_MODEL }}
-      HAS_API_KEY: ${{ secrets.ANTHROPIC_API_KEY != '' }}
     steps:
-      - name: Skip notice
-        if: env.HAS_API_KEY != 'true'
-        run: echo "::notice::ANTHROPIC_API_KEY is not available (e.g. fork PR or secret not set); AI evaluation skipped."
       - uses: actions/checkout@v4
-        if: env.HAS_API_KEY == 'true'
       - uses: astral-sh/setup-uv@v5
-        if: env.HAS_API_KEY == 'true'
         with:
           python-version: "3.13"
-      - name: Install
-        if: env.HAS_API_KEY == 'true'
-        run: uv sync --locked
-      - name: Run AI evaluation (fails the build if the quality gate fails)
-        if: env.HAS_API_KEY == 'true'
-        run: uv run pytest tests/evaluation -s
-      - name: Upload evaluation report
-        if: always() && env.HAS_API_KEY == 'true'
-        uses: actions/upload-artifact@v4
-        with:
-          name: evaluation-report
-          path: |
-            reports/latest.json
-            reports/history.jsonl
-            reports/report.html
-          if-no-files-found: ignore
-      # Publish only from master pushes, never from PRs. Runs even when the quality gate
-      # failed, so a failing report is visible too.
-      - name: Prepare Pages site
-        id: site
-        if: always() && env.HAS_API_KEY == 'true' && github.event_name == 'push' && github.ref == 'refs/heads/master' && hashFiles('reports/report.html') != ''
+      - run: uv sync --locked
+      - name: Render report.html from reports/history.jsonl
         run: |
+          uv run python -m travel_ai_eval.reporting.html_report
           mkdir site
           cp reports/report.html site/index.html
-          echo "ready=true" >> "$GITHUB_OUTPUT"
-      - name: Upload Pages artifact
-        if: steps.site.outputs.ready == 'true'
-        uses: actions/upload-pages-artifact@v3
+      - uses: actions/upload-pages-artifact@v3
         with:
           path: site
 
   deploy-report:
     name: Publish trend report (GitHub Pages)
-    needs: ai-evaluation
-    if: ${{ always() && needs.ai-evaluation.outputs.site_ready == 'true' }}
+    needs: build-report
     runs-on: ubuntu-latest
     permissions:
       pages: write
@@ -94,3 +66,31 @@ jobs:
     steps:
       - id: deploy
         uses: actions/deploy-pages@v4
+
+  ai-evaluation:
+    name: AI evaluation (manual only, spends Anthropic credits)
+    needs: unit-tests
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    env:
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      # Optional repo variable; falls back to the default model when unset.
+      ANTHROPIC_MODEL: ${{ vars.ANTHROPIC_MODEL }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.13"
+      - run: uv sync --locked
+      - name: Run AI evaluation (fails the build if the quality gate fails)
+        run: uv run pytest tests/evaluation -s
+      - name: Upload evaluation report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: evaluation-report
+          path: |
+            reports/latest.json
+            reports/history.jsonl
+            reports/report.html
+          if-no-files-found: ignore

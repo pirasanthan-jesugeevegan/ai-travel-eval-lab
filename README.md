@@ -6,7 +6,7 @@ It is **not** a booking app. The travel agent is deliberately simple; the intere
 
 > **Everything here is synthetic.** The 20 hotels in `data/travel_inventory.json` are fictional and were written for testing. No real customer data, prices or availability are used anywhere.
 
-**Live trend report:** https://pirasanthan-jesugeevegan.github.io/ai-travel-eval-lab/ (published by CI after each push to `master`).
+**Live trend report:** https://pirasanthan-jesugeevegan.github.io/ai-travel-eval-lab/ (rebuilt by CI from the committed `reports/history.jsonl` after each push to `master`).
 
 This is a learning/portfolio project. It is **not production-ready** (see [Limitations](#limitations)).
 
@@ -281,12 +281,13 @@ Commit `history.jsonl` if you want the trend to persist across machines and CI r
 
 ## Continuous integration
 
-`.github/workflows/evaluation.yml` has two clearly separated jobs:
+`.github/workflows/evaluation.yml` keeps paid AI calls out of the automatic pipeline:
 
-1. **Unit tests**: offline, no secrets, no API calls, runs on every push and PR.
-2. **AI evaluation**: runs only after unit tests pass and only when `secrets.ANTHROPIC_API_KEY` exists (fork PRs get a skip notice instead). It runs `pytest tests/evaluation`, **fails the build if the quality gate fails**, and uploads `reports/latest.json` as an artifact. An optional repository variable `ANTHROPIC_MODEL` selects the model.
+1. **Unit tests**: offline, no secrets, no API calls, on every push and PR.
+2. **Trend report**: on pushes to `master`, renders `reports/report.html` from the **committed** `reports/history.jsonl` and publishes it to GitHub Pages. No API calls.
+3. **AI evaluation**: runs only when triggered by hand (`workflow_dispatch`), using `secrets.ANTHROPIC_API_KEY`. It runs `pytest tests/evaluation`, **fails the job if the quality gate fails**, and uploads the report as an artifact.
 
-Treating the evaluation as a release gate: a prompt or model change that lowers quality below the thresholds blocks the merge, the same way a failing test would.
+The intended routine: run the evaluation locally when the prompt, model or dataset changes, review the report, then commit `reports/history.jsonl` so the published trend updates. The quality gate is enforced by the CLI exit code and by `tests/evaluation`, wherever it is run; wiring it to run automatically on every push is a one-line change in the workflow, at the price of about 150 API calls per push.
 
 ## Cost control
 

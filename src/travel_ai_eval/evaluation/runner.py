@@ -193,7 +193,13 @@ def main(argv: list[str] | None = None) -> int:
         print(f"JSON report: {write_json_report(run)}")
     else:
         paths = save_run_outputs(run, args.label)
-        print(f"\nJSON report: {paths['json']}\nHTML trends: {paths['html']}")
+        if "html" in paths:
+            print(f"\nJSON report: {paths['json']}\nHTML trends: {paths['html']}")
+        else:
+            print(
+                "\nRun NOT recorded in the history: every case failed with an API error "
+                "(check ANTHROPIC_API_KEY, account credit and network). See the Failures above."
+            )
     return 0 if run.gate.passed else 1
 
 

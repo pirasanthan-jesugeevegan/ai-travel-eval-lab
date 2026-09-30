@@ -5,7 +5,7 @@ from pathlib import Path
 
 from travel_ai_eval.config import REPORTS_DIR
 from travel_ai_eval.models.results import GateCheck, RunMetrics, RunResult
-from travel_ai_eval.reporting.history import append_history, summarise
+from travel_ai_eval.reporting.history import append_history, is_api_outage, summarise
 from travel_ai_eval.reporting.html_report import write_html_report
 
 LATEST_PATH = REPORTS_DIR / "latest.json"
@@ -157,8 +157,13 @@ def load_report(path: Path) -> RunResult:
 def save_run_outputs(
     run: RunResult, label: str | None = None, out_dir: Path = REPORTS_DIR
 ) -> dict[str, Path]:
-    """Write latest.json, append the run to the history and regenerate the HTML trend report."""
+    """Write latest.json, append the run to the history and regenerate the HTML trend report.
+
+    Runs where every API call failed are written to latest.json only.
+    """
     latest = write_json_report(run, out_dir / "latest.json")
+    if is_api_outage(run):
+        return {"json": latest}  # not an evaluation result: keep it out of history and trends
     history = out_dir / "history.jsonl"
     append_history(summarise(run, label), history)
     html = write_html_report(history, latest, out_dir / "report.html")

@@ -82,6 +82,15 @@ def summarise(run: RunResult, label: str | None = None) -> HistoryEntry:
     )
 
 
+def is_api_outage(run: RunResult) -> bool:
+    """True when every case failed on the API call itself (bad key, no credit, network down).
+
+    That says nothing about the travel agent's quality, so it must not enter the history
+    as if it were an evaluation result.
+    """
+    return bool(run.cases) and all((c.agent_error or "").startswith("llm_error") for c in run.cases)
+
+
 def load_history(path: Path = HISTORY_PATH) -> list[HistoryEntry]:
     if not path.is_file():
         return []

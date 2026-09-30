@@ -10,6 +10,7 @@ from travel_ai_eval.evaluation.runner import run_evaluation
 from travel_ai_eval.reporting.history import (
     append_history,
     changes_vs_previous,
+    is_api_outage,
     load_history,
     summarise,
 )
@@ -137,3 +138,22 @@ def test_save_run_outputs_writes_json_history_and_html(tmp_path, good_run):
     assert load_history(paths["history"])[0].label == "lbl"
     save_run_outputs(good_run, "lbl", out_dir=tmp_path)  # same run again: history unchanged
     assert len(load_history(paths["history"])) == 1
+
+
+def test_api_outage_run_is_not_recorded(tmp_path):
+    class DownProvider:
+        model = "fake"
+
+        def generate(self, **_):
+            from travel_ai_eval.ai.provider import LLMError
+
+            raise LLMError("credit balance is too low")
+
+    run = run_evaluation(DownProvider(), INVENTORY, CASES, "v1")
+    assert is_api_outage(run)
+    paths = save_run_outputs(run, out_dir=tmp_path)
+    assert set(paths) == {"json"} and not (tmp_path / "history.jsonl").exists()
+
+
+def test_partial_api_failure_is_still_recorded(tmp_path, good_run):
+    assert not is_api_outage(good_run)
