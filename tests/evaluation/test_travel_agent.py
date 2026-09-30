@@ -4,6 +4,8 @@ Run explicitly:  pytest tests/evaluation -s
 Skipped automatically when ANTHROPIC_API_KEY is not set.
 """
 
+import os
+
 import pytest
 
 from travel_ai_eval.ai.provider import AnthropicProvider
@@ -14,7 +16,7 @@ from travel_ai_eval.reporting.report import (
     BASELINE_PATH,
     format_terminal_report,
     load_report,
-    write_json_report,
+    save_run_outputs,
 )
 
 pytestmark = pytest.mark.skipif(
@@ -27,7 +29,7 @@ pytestmark = pytest.mark.skipif(
 def report():
     dataset = load_dataset()
     run = run_evaluation(AnthropicProvider(load_settings()), load_inventory(), dataset.cases, dataset.version)
-    write_json_report(run)
+    save_run_outputs(run, os.environ.get("EVAL_LABEL"))
     baseline = load_report(BASELINE_PATH) if BASELINE_PATH.is_file() else None
     text = format_terminal_report(run, baseline)
     print("\n" + text)

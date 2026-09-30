@@ -7,4 +7,5 @@ __pycache__/
 reports/*
 !reports/.gitkeep
 !reports/baseline.json
+!reports/history.jsonl
 .DS_Store

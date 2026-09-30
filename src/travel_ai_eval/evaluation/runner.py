@@ -1,6 +1,7 @@
 """Run the golden dataset through the agent and both evaluation layers."""
 
 import argparse
+import os
 import statistics
 import sys
 from collections.abc import Callable
@@ -37,6 +38,7 @@ from travel_ai_eval.reporting.report import (
     format_terminal_report,
     load_report,
     write_json_report,
+    save_run_outputs,
 )
 
 ProgressCallback = Callable[[int, int, CaseResult], None]
@@ -171,6 +173,8 @@ def main(argv: list[str] | None = None) -> int:
         default=BASELINE_PATH,
         help="earlier run JSON to compare against (default: reports/baseline.json if present)",
     )
+    parser.add_argument("--label", default=os.environ.get("EVAL_LABEL"),
+                        help="short note stored with the run in the history (or set EVAL_LABEL)")
     args = parser.parse_args(argv)
 
     try:
@@ -183,9 +187,13 @@ def main(argv: list[str] | None = None) -> int:
     run = run_evaluation(
         provider, load_inventory(), cases, dataset.version, _print_progress
     )
-    path = write_json_report(run)
     print(format_terminal_report(run, _load_baseline(args.baseline)))
-    print(f"\nJSON report: {path}")
+    if args.limit:
+        print("\nPartial run (--limit): not added to the history.")
+        print(f"JSON report: {write_json_report(run)}")
+    else:
+        paths = save_run_outputs(run, args.label)
+        print(f"\nJSON report: {paths['json']}\nHTML trends: {paths['html']}")
     return 0 if run.gate.passed else 1
 
 

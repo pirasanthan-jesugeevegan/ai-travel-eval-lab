@@ -6,6 +6,8 @@ It is **not** a booking app. The travel agent is deliberately simple; the intere
 
 > **Everything here is synthetic.** The 20 hotels in `data/travel_inventory.json` are fictional and were written for testing. No real customer data, prices or availability are used anywhere.
 
+**Live trend report:** https://pirasanthan-jesugeevegan.github.io/ai-travel-eval-lab/ (published by CI after each push to `master`).
+
 This is a learning/portfolio project. It is **not production-ready** (see [Limitations](#limitations)).
 
 ---
@@ -256,7 +258,24 @@ Constraint satisfaction         97.6%     91.0%  ↓
 Groundedness                     4.95      4.20  ↓
 ```
 
-The comparison is informational: the gate decides PASS/FAIL from absolute thresholds. No database is used, only JSON files. Only `reports/baseline.json` is un-ignored by `.gitignore`; `latest.json` is generated output.
+The comparison is informational: the gate decides PASS/FAIL from absolute thresholds. No database is used, only JSON files. `reports/baseline.json` and `reports/history.jsonl` are un-ignored by `.gitignore`; `latest.json` and `report.html` are generated output.
+
+### Run history and trend report
+
+Every full run (not `--limit` runs) appends one line to `reports/history.jsonl`: metadata, metrics, the gate result with the thresholds that applied, the git commit, an optional label, and a per-case pass/fail summary. It then regenerates `reports/report.html`, a single self-contained file (inline SVG, no external assets, light and dark mode):
+
+- headline verdict and the five gated metrics, each with its change since the previous run,
+- one trend chart per metric on its own scale, with the threshold drawn on it, diamonds for runs below threshold and hairlines where the model, prompt or dataset version changed,
+- a run-by-run table showing what changed, results grouped by configuration (mean and min–max across repeated runs),
+- a case-stability matrix (which cases fail, and which flip between runs), and the failures of the latest run.
+
+```bash
+uv run python -m travel_ai_eval.evaluation.runner --label "tightened budget rule"   # or EVAL_LABEL=...
+uv run python -m travel_ai_eval.reporting.html_report       # regenerate the page from history
+uv run python -m travel_ai_eval.reporting.history add reports/baseline.json --label "..."   # import an older run
+```
+
+Commit `history.jsonl` if you want the trend to persist across machines and CI runs; CI uploads the history and report as build artifacts. Bump `PROMPT_VERSION` whenever the prompt changes, otherwise runs with different prompts are grouped together and the change markers do not appear.
 
 **To try a deliberate regression:** edit `SYSTEM_PROMPT` in `ai/prompts.py` to tell the assistant to ignore the budget, run the evaluation, and watch constraint satisfaction drop and the gate fail. The same behaviour is exercised offline (with a fake agent) by `test_regression_ignoring_constraints_fails_the_gate_despite_perfect_judge`.
 

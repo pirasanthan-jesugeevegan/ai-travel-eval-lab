@@ -5,6 +5,8 @@ from pathlib import Path
 
 from travel_ai_eval.config import REPORTS_DIR
 from travel_ai_eval.models.results import GateCheck, RunMetrics, RunResult
+from travel_ai_eval.reporting.history import append_history, summarise
+from travel_ai_eval.reporting.html_report import write_html_report
 
 LATEST_PATH = REPORTS_DIR / "latest.json"
 BASELINE_PATH = REPORTS_DIR / "baseline.json"
@@ -150,3 +152,14 @@ def write_json_report(run: RunResult, path: Path = LATEST_PATH) -> Path:
 
 def load_report(path: Path) -> RunResult:
     return RunResult.model_validate_json(path.read_text(encoding="utf-8"))
+
+
+def save_run_outputs(
+    run: RunResult, label: str | None = None, out_dir: Path = REPORTS_DIR
+) -> dict[str, Path]:
+    """Write latest.json, append the run to the history and regenerate the HTML trend report."""
+    latest = write_json_report(run, out_dir / "latest.json")
+    history = out_dir / "history.jsonl"
+    append_history(summarise(run, label), history)
+    html = write_html_report(history, latest, out_dir / "report.html")
+    return {"json": latest, "history": history, "html": html}
