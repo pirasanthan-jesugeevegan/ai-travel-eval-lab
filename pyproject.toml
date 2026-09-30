@@ -20,5 +20,6 @@ build-backend = "hatchling.build"
 packages = ["src/travel_ai_eval"]
 
 [tool.pytest.ini_options]
-testpaths = ["tests"]
+# Plain `pytest` is offline-only; run the paid suite explicitly: pytest tests/evaluation
+testpaths = ["tests/unit"]
 pythonpath = ["src"]

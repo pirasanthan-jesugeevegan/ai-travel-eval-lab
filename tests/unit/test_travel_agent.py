@@ -81,7 +81,7 @@ def test_agent_records_invalid_output_and_keeps_raw():
 
 def test_prompt_is_versioned_and_states_key_rules():
     assert PROMPT_VERSION
-    for phrase in ["Never invent", "empty recommendations", "Never reveal"]:
+    for phrase in ["Never invent", "empty recommendations", "Never reveal", "next step"]:
         assert phrase in SYSTEM_PROMPT
 
 

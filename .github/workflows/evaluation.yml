@@ -1,0 +1,59 @@
+name: Evaluation
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: evaluation-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  unit-tests:
+    name: Unit tests (offline, no API calls)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.13"
+      - run: uv sync --locked
+      - run: uv run pytest tests/unit
+
+  ai-evaluation:
+    name: AI evaluation (Anthropic, quality gate)
+    needs: unit-tests
+    runs-on: ubuntu-latest
+    env:
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      # Optional repo variable; falls back to the default model when unset.
+      ANTHROPIC_MODEL: ${{ vars.ANTHROPIC_MODEL }}
+      HAS_API_KEY: ${{ secrets.ANTHROPIC_API_KEY != '' }}
+    steps:
+      - name: Skip notice
+        if: env.HAS_API_KEY != 'true'
+        run: echo "::notice::ANTHROPIC_API_KEY is not available (e.g. fork PR or secret not set); AI evaluation skipped."
+      - uses: actions/checkout@v4
+        if: env.HAS_API_KEY == 'true'
+      - uses: astral-sh/setup-uv@v5
+        if: env.HAS_API_KEY == 'true'
+        with:
+          python-version: "3.13"
+      - name: Install
+        if: env.HAS_API_KEY == 'true'
+        run: uv sync --locked
+      - name: Run AI evaluation (fails the build if the quality gate fails)
+        if: env.HAS_API_KEY == 'true'
+        run: uv run pytest tests/evaluation -s
+      - name: Upload evaluation report
+        if: always() && env.HAS_API_KEY == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: evaluation-report
+          path: reports/latest.json
+          if-no-files-found: ignore
