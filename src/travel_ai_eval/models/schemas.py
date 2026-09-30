@@ -2,7 +2,7 @@
 
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, computed_field
 
 
 class InventoryItem(BaseModel):
@@ -70,3 +70,20 @@ class GoldenCase(BaseModel):
 class GoldenDataset(BaseModel):
     version: str
     cases: list[GoldenCase]
+
+
+class CheckResult(BaseModel):
+    name: str
+    passed: bool
+    reason: str
+
+
+class EvalResult(BaseModel):
+    """Outcome of all deterministic checks for one case. Passes only if every check passes."""
+
+    checks: list[CheckResult]
+
+    @computed_field
+    @property
+    def passed(self) -> bool:
+        return all(c.passed for c in self.checks)

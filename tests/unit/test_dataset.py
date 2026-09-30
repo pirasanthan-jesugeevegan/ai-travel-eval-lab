@@ -2,8 +2,9 @@ from collections import Counter
 
 import pytest
 
+from helpers import matches
 from travel_ai_eval.data import load_dataset, load_inventory
-from travel_ai_eval.models.schemas import Constraints, GoldenCase, InventoryItem
+from travel_ai_eval.models.schemas import GoldenCase
 
 INVENTORY = load_inventory()
 DATASET = load_dataset()
@@ -12,24 +13,20 @@ FEASIBLE_CATEGORIES = {"normal", "budget", "attribute", "multi_constraint", "amb
 INFEASIBLE_CATEGORIES = {"conflicting", "impossible"}
 
 
-def matches(item: InventoryItem, c: Constraints) -> bool:
-    """Test-local oracle; the real evaluator lives in evaluation/deterministic.py."""
-    return (
-        (c.destination is None or item.destination == c.destination)
-        and (c.country is None or item.country == c.country)
-        and (c.max_budget_gbp is None or item.price_gbp <= c.max_budget_gbp)
-        and (c.family_friendly is None or item.family_friendly == c.family_friendly)
-        and (c.free_cancellation is None or item.free_cancellation == c.free_cancellation)
-        and (c.beach_access is None or item.beach_access == c.beach_access)
-        and (c.min_rating is None or item.rating >= c.min_rating)
-    )
-
-
 def test_inventory_size_and_coverage():
     assert 15 <= len(INVENTORY) <= 25
     destinations = {i.destination for i in INVENTORY}
-    assert {"Dubai", "Paris", "Barcelona", "Tenerife", "Bangkok", "Phuket", "Rome",
-            "New York", "Abu Dhabi"} <= destinations
+    assert {
+        "Dubai",
+        "Paris",
+        "Barcelona",
+        "Tenerife",
+        "Bangkok",
+        "Phuket",
+        "Rome",
+        "New York",
+        "Abu Dhabi",
+    } <= destinations
 
 
 def test_inventory_ids_unique():
@@ -53,15 +50,21 @@ def test_dataset_has_non_english_cases():
     assert {c.language for c in DATASET.cases} > {"en"}
 
 
-@pytest.mark.parametrize("case", [c for c in DATASET.cases if c.category in FEASIBLE_CATEGORIES],
-                         ids=lambda c: c.id)
+@pytest.mark.parametrize(
+    "case",
+    [c for c in DATASET.cases if c.category in FEASIBLE_CATEGORIES],
+    ids=lambda c: c.id,
+)
 def test_feasible_cases_have_an_answer_in_inventory(case):
     assert any(matches(i, case.constraints) for i in INVENTORY)
     assert not case.expect_no_recommendations
 
 
-@pytest.mark.parametrize("case", [c for c in DATASET.cases if c.category in INFEASIBLE_CATEGORIES],
-                         ids=lambda c: c.id)
+@pytest.mark.parametrize(
+    "case",
+    [c for c in DATASET.cases if c.category in INFEASIBLE_CATEGORIES],
+    ids=lambda c: c.id,
+)
 def test_infeasible_cases_have_no_answer_in_inventory(case):
     assert not any(matches(i, case.constraints) for i in INVENTORY)
     assert case.expect_no_recommendations
