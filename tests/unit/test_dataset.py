@@ -1,0 +1,88 @@
+from collections import Counter
+
+import pytest
+
+from travel_ai_eval.data import load_dataset, load_inventory
+from travel_ai_eval.models.schemas import Constraints, GoldenCase, InventoryItem
+
+INVENTORY = load_inventory()
+DATASET = load_dataset()
+
+FEASIBLE_CATEGORIES = {"normal", "budget", "attribute", "multi_constraint", "ambiguous"}
+INFEASIBLE_CATEGORIES = {"conflicting", "impossible"}
+
+
+def matches(item: InventoryItem, c: Constraints) -> bool:
+    """Test-local oracle; the real evaluator lives in evaluation/deterministic.py."""
+    return (
+        (c.destination is None or item.destination == c.destination)
+        and (c.country is None or item.country == c.country)
+        and (c.max_budget_gbp is None or item.price_gbp <= c.max_budget_gbp)
+        and (c.family_friendly is None or item.family_friendly == c.family_friendly)
+        and (c.free_cancellation is None or item.free_cancellation == c.free_cancellation)
+        and (c.beach_access is None or item.beach_access == c.beach_access)
+        and (c.min_rating is None or item.rating >= c.min_rating)
+    )
+
+
+def test_inventory_size_and_coverage():
+    assert 15 <= len(INVENTORY) <= 25
+    destinations = {i.destination for i in INVENTORY}
+    assert {"Dubai", "Paris", "Barcelona", "Tenerife", "Bangkok", "Phuket", "Rome",
+            "New York", "Abu Dhabi"} <= destinations
+
+
+def test_inventory_ids_unique():
+    assert len({i.id for i in INVENTORY}) == len(INVENTORY)
+
+
+def test_dataset_size_and_version():
+    assert 35 <= len(DATASET.cases) <= 45
+    assert DATASET.version
+
+
+def test_dataset_covers_all_categories_and_is_not_all_happy_path():
+    counts = Counter(c.category for c in DATASET.cases)
+    assert set(counts) == set(GoldenCase.model_fields["category"].annotation.__args__)
+    assert counts["multi_constraint"] >= 5
+    assert counts["prompt_injection"] >= 2
+    assert sum(1 for c in DATASET.cases if c.expect_no_recommendations) >= 5
+
+
+def test_dataset_has_non_english_cases():
+    assert {c.language for c in DATASET.cases} > {"en"}
+
+
+@pytest.mark.parametrize("case", [c for c in DATASET.cases if c.category in FEASIBLE_CATEGORIES],
+                         ids=lambda c: c.id)
+def test_feasible_cases_have_an_answer_in_inventory(case):
+    assert any(matches(i, case.constraints) for i in INVENTORY)
+    assert not case.expect_no_recommendations
+
+
+@pytest.mark.parametrize("case", [c for c in DATASET.cases if c.category in INFEASIBLE_CATEGORIES],
+                         ids=lambda c: c.id)
+def test_infeasible_cases_have_no_answer_in_inventory(case):
+    assert not any(matches(i, case.constraints) for i in INVENTORY)
+    assert case.expect_no_recommendations
+
+
+def test_missing_file_raises_clear_error(tmp_path):
+    with pytest.raises(FileNotFoundError, match="not found"):
+        load_inventory(tmp_path / "nope.json")
+
+
+def test_duplicate_inventory_ids_rejected(tmp_path):
+    item = INVENTORY[0].model_dump_json()
+    f = tmp_path / "inv.json"
+    f.write_text(f"[{item},{item}]")
+    with pytest.raises(ValueError, match="Duplicate"):
+        load_inventory(f)
+
+
+def test_duplicate_case_ids_rejected(tmp_path):
+    case = DATASET.cases[0].model_dump_json()
+    f = tmp_path / "ds.json"
+    f.write_text(f'{{"version": "x", "cases": [{case},{case}]}}')
+    with pytest.raises(ValueError, match="Duplicate"):
+        load_dataset(f)

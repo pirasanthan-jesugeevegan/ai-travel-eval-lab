@@ -1,0 +1,222 @@
+[
+  {
+    "id": "DXB001",
+    "name": "Dubai Beach Resort",
+    "destination": "Dubai",
+    "country": "United Arab Emirates",
+    "price_gbp": 1750,
+    "family_friendly": true,
+    "free_cancellation": true,
+    "beach_access": true,
+    "rating": 4.5
+  },
+  {
+    "id": "DXB002",
+    "name": "Marina Skyline Hotel",
+    "destination": "Dubai",
+    "country": "United Arab Emirates",
+    "price_gbp": 1200,
+    "family_friendly": false,
+    "free_cancellation": true,
+    "beach_access": false,
+    "rating": 4.2
+  },
+  {
+    "id": "DXB003",
+    "name": "Palm Family Retreat",
+    "destination": "Dubai",
+    "country": "United Arab Emirates",
+    "price_gbp": 2400,
+    "family_friendly": true,
+    "free_cancellation": false,
+    "beach_access": true,
+    "rating": 4.7
+  },
+  {
+    "id": "DXB004",
+    "name": "Deira Budget Inn",
+    "destination": "Dubai",
+    "country": "United Arab Emirates",
+    "price_gbp": 480,
+    "family_friendly": false,
+    "free_cancellation": false,
+    "beach_access": false,
+    "rating": 3.6
+  },
+  {
+    "id": "AUH001",
+    "name": "Abu Dhabi Corniche Hotel",
+    "destination": "Abu Dhabi",
+    "country": "United Arab Emirates",
+    "price_gbp": 1500,
+    "family_friendly": true,
+    "free_cancellation": true,
+    "beach_access": true,
+    "rating": 4.3
+  },
+  {
+    "id": "AUH002",
+    "name": "Desert Palms Abu Dhabi",
+    "destination": "Abu Dhabi",
+    "country": "United Arab Emirates",
+    "price_gbp": 2100,
+    "family_friendly": true,
+    "free_cancellation": false,
+    "beach_access": false,
+    "rating": 4.4
+  },
+  {
+    "id": "PAR001",
+    "name": "Paris Latin Quarter Hotel",
+    "destination": "Paris",
+    "country": "France",
+    "price_gbp": 900,
+    "family_friendly": false,
+    "free_cancellation": true,
+    "beach_access": false,
+    "rating": 4.1
+  },
+  {
+    "id": "PAR002",
+    "name": "Paris Family Suites",
+    "destination": "Paris",
+    "country": "France",
+    "price_gbp": 1600,
+    "family_friendly": true,
+    "free_cancellation": true,
+    "beach_access": false,
+    "rating": 4.4
+  },
+  {
+    "id": "BCN001",
+    "name": "Barcelona Seafront Hotel",
+    "destination": "Barcelona",
+    "country": "Spain",
+    "price_gbp": 1100,
+    "family_friendly": true,
+    "free_cancellation": true,
+    "beach_access": true,
+    "rating": 4.3
+  },
+  {
+    "id": "BCN002",
+    "name": "Gothic Quarter Boutique",
+    "destination": "Barcelona",
+    "country": "Spain",
+    "price_gbp": 850,
+    "family_friendly": false,
+    "free_cancellation": false,
+    "beach_access": false,
+    "rating": 4.0
+  },
+  {
+    "id": "TFS001",
+    "name": "Tenerife Sun Resort",
+    "destination": "Tenerife",
+    "country": "Spain",
+    "price_gbp": 950,
+    "family_friendly": true,
+    "free_cancellation": true,
+    "beach_access": true,
+    "rating": 4.2
+  },
+  {
+    "id": "TFS002",
+    "name": "Costa Adeje Family Club",
+    "destination": "Tenerife",
+    "country": "Spain",
+    "price_gbp": 1350,
+    "family_friendly": true,
+    "free_cancellation": false,
+    "beach_access": true,
+    "rating": 4.5
+  },
+  {
+    "id": "BKK001",
+    "name": "Bangkok Riverside Hotel",
+    "destination": "Bangkok",
+    "country": "Thailand",
+    "price_gbp": 700,
+    "family_friendly": true,
+    "free_cancellation": true,
+    "beach_access": false,
+    "rating": 4.3
+  },
+  {
+    "id": "BKK002",
+    "name": "Sukhumvit Business Hotel",
+    "destination": "Bangkok",
+    "country": "Thailand",
+    "price_gbp": 520,
+    "family_friendly": false,
+    "free_cancellation": false,
+    "beach_access": false,
+    "rating": 3.9
+  },
+  {
+    "id": "HKT001",
+    "name": "Phuket Bay Resort",
+    "destination": "Phuket",
+    "country": "Thailand",
+    "price_gbp": 1300,
+    "family_friendly": true,
+    "free_cancellation": true,
+    "beach_access": true,
+    "rating": 4.4
+  },
+  {
+    "id": "HKT002",
+    "name": "Patong Budget Beach Hotel",
+    "destination": "Phuket",
+    "country": "Thailand",
+    "price_gbp": 450,
+    "family_friendly": false,
+    "free_cancellation": false,
+    "beach_access": true,
+    "rating": 3.7
+  },
+  {
+    "id": "ROM001",
+    "name": "Rome Colosseum Hotel",
+    "destination": "Rome",
+    "country": "Italy",
+    "price_gbp": 1250,
+    "family_friendly": false,
+    "free_cancellation": true,
+    "beach_access": false,
+    "rating": 4.3
+  },
+  {
+    "id": "ROM002",
+    "name": "Trastevere Family Apartments",
+    "destination": "Rome",
+    "country": "Italy",
+    "price_gbp": 1000,
+    "family_friendly": true,
+    "free_cancellation": false,
+    "beach_access": false,
+    "rating": 4.1
+  },
+  {
+    "id": "NYC001",
+    "name": "Manhattan Grand Hotel",
+    "destination": "New York",
+    "country": "United States",
+    "price_gbp": 2800,
+    "family_friendly": false,
+    "free_cancellation": true,
+    "beach_access": false,
+    "rating": 4.5
+  },
+  {
+    "id": "NYC002",
+    "name": "Brooklyn Family Inn",
+    "destination": "New York",
+    "country": "United States",
+    "price_gbp": 1900,
+    "family_friendly": true,
+    "free_cancellation": true,
+    "beach_access": false,
+    "rating": 4.0
+  }
+]
