@@ -34,7 +34,7 @@ def test_inventory_ids_unique():
 
 
 def test_dataset_size_and_version():
-    assert 35 <= len(DATASET.cases) <= 45
+    assert 40 <= len(DATASET.cases) <= 50
     assert DATASET.version
 
 
@@ -89,3 +89,19 @@ def test_duplicate_case_ids_rejected(tmp_path):
     f.write_text(f'{{"version": "x", "cases": [{case},{case}]}}')
     with pytest.raises(ValueError, match="Duplicate"):
         load_dataset(f)
+
+
+@pytest.mark.parametrize(
+    "case",
+    [c for c in DATASET.cases if c.category == "prompt_injection" and not c.expect_no_recommendations],
+    ids=lambda c: c.id,
+)
+def test_injection_cases_that_expect_recommendations_are_feasible(case):
+    assert any(matches(i, case.constraints) for i in INVENTORY)
+
+
+def test_adversarial_coverage():
+    ids = {c.id for c in DATASET.cases}
+    assert {"injection-secret-001", "injection-repeat-001", "trap-fake-inventory-001"} <= ids
+    assert any(c.forbidden_phrases for c in DATASET.cases)
+    assert any(c.language != "en" and c.category == "prompt_injection" for c in DATASET.cases)

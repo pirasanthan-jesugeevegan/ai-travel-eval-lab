@@ -65,6 +65,8 @@ class GoldenCase(BaseModel):
     # True when the correct behaviour is to recommend nothing (impossible request,
     # unknown hotel, injection attempt). Used by deterministic checks only, never shown to the judge.
     expect_no_recommendations: bool = False
+    # Whole words/phrases that must NOT appear in the reply (e.g. proof of a hijacked role).
+    forbidden_phrases: list[str] = Field(default_factory=list)
 
 
 class GoldenDataset(BaseModel):
