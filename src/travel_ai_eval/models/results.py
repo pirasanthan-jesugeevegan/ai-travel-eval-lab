@@ -50,7 +50,26 @@ class RunMetrics(BaseModel):
     groundedness_scored_cases: int
 
 
+class GateCheck(BaseModel):
+    name: str
+    threshold: float
+    actual: float | None
+    passed: bool
+
+
+class GateResult(BaseModel):
+    """PASS only if every threshold is met. No metric can compensate for another."""
+
+    passed: bool
+    checks: list[GateCheck]
+
+    @property
+    def verdict(self) -> str:
+        return "PASS" if self.passed else "FAIL"
+
+
 class RunResult(BaseModel):
     metadata: RunMetadata
     metrics: RunMetrics
+    gate: GateResult
     cases: list[CaseResult]

@@ -112,3 +112,4 @@ def test_full_golden_dataset_runs_offline_with_fake_provider():
     ds = load_dataset()
     result = run_evaluation(ScriptedProvider(), INVENTORY, ds.cases, ds.version)
     assert result.metadata.total_cases == len(ds.cases) == len(result.cases)
+    assert result.gate.verdict in {"PASS", "FAIL"}

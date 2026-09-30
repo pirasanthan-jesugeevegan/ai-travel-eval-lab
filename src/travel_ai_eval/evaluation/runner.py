@@ -19,6 +19,7 @@ from travel_ai_eval.evaluation.deterministic import (
 )
 from travel_ai_eval.evaluation.groundedness import check_groundedness
 from travel_ai_eval.evaluation.llm_judge import JUDGE_PROMPT_VERSION, judge_response
+from travel_ai_eval.evaluation.thresholds import Thresholds, evaluate_gate
 from travel_ai_eval.models.results import CaseResult, RunMetadata, RunMetrics, RunResult
 from travel_ai_eval.models.schemas import (
     CheckResult,
@@ -98,6 +99,7 @@ def run_evaluation(
     cases: list[GoldenCase],
     dataset_version: str,
     on_case: ProgressCallback | None = None,
+    thresholds: Thresholds | None = None,
 ) -> RunResult:
     agent = TravelAgent(provider, inventory)
     results: list[CaseResult] = []
@@ -109,6 +111,7 @@ def run_evaluation(
         results.append(result)
         if on_case:
             on_case(n, len(cases), result)
+    metrics = compute_metrics(results)
     return RunResult(
         metadata=RunMetadata(
             timestamp=datetime.now(UTC).isoformat(timespec="seconds"),
@@ -118,7 +121,8 @@ def run_evaluation(
             judge_prompt_version=JUDGE_PROMPT_VERSION,
             total_cases=len(cases),
         ),
-        metrics=compute_metrics(results),
+        metrics=metrics,
+        gate=evaluate_gate(metrics, len(cases), thresholds or Thresholds.from_env()),
         cases=results,
     )
 
@@ -142,7 +146,11 @@ def main(argv: list[str] | None = None) -> int:
     cases = dataset.cases[: args.limit] if args.limit else dataset.cases
     run = run_evaluation(provider, load_inventory(), cases, dataset.version, _print_progress)
     print(run.metrics.model_dump_json(indent=2))
-    return 0
+    print(f"QUALITY GATE: {run.gate.verdict}")
+    for c in run.gate.checks:
+        if not c.passed:
+            print(f"  failed: {c.name} = {c.actual} (required >= {c.threshold})")
+    return 0 if run.gate.passed else 1
 
 
 if __name__ == "__main__":
