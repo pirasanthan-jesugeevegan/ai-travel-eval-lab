@@ -34,7 +34,7 @@ def test_inventory_ids_unique():
 
 
 def test_dataset_size_and_version():
-    assert 40 <= len(DATASET.cases) <= 50
+    assert 40 <= len(DATASET.cases) <= 70
     assert DATASET.version
 
 

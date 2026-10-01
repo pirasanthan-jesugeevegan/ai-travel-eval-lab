@@ -1,5 +1,5 @@
 {
-  "version": "1.1.0",
+  "version": "1.2.0",
   "cases": [
     {
       "id": "family-dubai-001",
@@ -537,6 +537,170 @@
         "destination": "Rome",
         "beach_access": true,
         "max_budget_gbp": 500
+      }
+    },
+    {
+      "id": "hard-cheapest-thailand-001",
+      "category": "attribute",
+      "query": "What's the cheapest hotel in Thailand?",
+      "language": "en",
+      "expect_no_recommendations": false,
+      "required_hotel_ids": [
+        "HKT002"
+      ],
+      "constraints": {
+        "country": "Thailand"
+      }
+    },
+    {
+      "id": "hard-toprated-paris-001",
+      "category": "attribute",
+      "query": "Which Paris hotel has the best rating?",
+      "language": "en",
+      "expect_no_recommendations": false,
+      "required_hotel_ids": [
+        "PAR002"
+      ],
+      "constraints": {
+        "destination": "Paris"
+      }
+    },
+    {
+      "id": "hard-cheapest-family-cancel-001",
+      "category": "multi_constraint",
+      "query": "Cheapest family-friendly hotel with free cancellation, anywhere.",
+      "language": "en",
+      "expect_no_recommendations": false,
+      "required_hotel_ids": [
+        "BKK001"
+      ],
+      "constraints": {
+        "family_friendly": true,
+        "free_cancellation": true
+      }
+    },
+    {
+      "id": "hard-boundary-dubai-001",
+      "category": "budget",
+      "query": "Family-friendly Dubai hotel, no more than £1750.",
+      "language": "en",
+      "expect_no_recommendations": false,
+      "required_hotel_ids": [
+        "DXB001"
+      ],
+      "constraints": {
+        "destination": "Dubai",
+        "max_budget_gbp": 1750,
+        "family_friendly": true
+      }
+    },
+    {
+      "id": "hard-nearmiss-barcelona-001",
+      "category": "conflicting",
+      "query": "Family-friendly Barcelona hotel with free cancellation under £1099.",
+      "language": "en",
+      "expect_no_recommendations": true,
+      "required_hotel_ids": [],
+      "constraints": {
+        "destination": "Barcelona",
+        "max_budget_gbp": 1099,
+        "family_friendly": true,
+        "free_cancellation": true
+      }
+    },
+    {
+      "id": "hard-nearmiss-tenerife-001",
+      "category": "conflicting",
+      "query": "Family beach hotel in Tenerife under £949.",
+      "language": "en",
+      "expect_no_recommendations": true,
+      "required_hotel_ids": [],
+      "constraints": {
+        "destination": "Tenerife",
+        "max_budget_gbp": 949,
+        "family_friendly": true,
+        "beach_access": true
+      }
+    },
+    {
+      "id": "hard-nearmiss-newyork-001",
+      "category": "conflicting",
+      "query": "New York hotel rated 4.5 or higher, under £2000.",
+      "language": "en",
+      "expect_no_recommendations": true,
+      "required_hotel_ids": [],
+      "constraints": {
+        "destination": "New York",
+        "max_budget_gbp": 2000,
+        "min_rating": 4.5
+      }
+    },
+    {
+      "id": "hard-total-paris-001",
+      "category": "conflicting",
+      "query": "Family of 4, total budget £4000 for a Paris holiday. Family-friendly hotel please.",
+      "language": "en",
+      "expect_no_recommendations": true,
+      "required_hotel_ids": [],
+      "constraints": {
+        "destination": "Paris",
+        "max_budget_gbp": 1000,
+        "family_friendly": true
+      }
+    },
+    {
+      "id": "hard-total-rome-001",
+      "category": "budget",
+      "query": "Family of 3, total budget £3000, somewhere in Rome.",
+      "language": "en",
+      "expect_no_recommendations": false,
+      "required_hotel_ids": [
+        "ROM002"
+      ],
+      "constraints": {
+        "destination": "Rome",
+        "max_budget_gbp": 1000,
+        "family_friendly": true
+      }
+    },
+    {
+      "id": "hard-negation-dubai-001",
+      "category": "attribute",
+      "query": "A Dubai hotel that is NOT family-friendly, under £1300.",
+      "language": "en",
+      "expect_no_recommendations": false,
+      "required_hotel_ids": [],
+      "constraints": {
+        "destination": "Dubai",
+        "max_budget_gbp": 1300,
+        "family_friendly": false
+      }
+    },
+    {
+      "id": "hard-german-dubai-001",
+      "category": "budget",
+      "query": "Familienurlaub in Dubai, unter 2.000 £ pro Person.",
+      "language": "de",
+      "expect_no_recommendations": false,
+      "required_hotel_ids": [
+        "DXB001"
+      ],
+      "constraints": {
+        "destination": "Dubai",
+        "max_budget_gbp": 2000,
+        "family_friendly": true
+      }
+    },
+    {
+      "id": "hard-implicit-toddler-001",
+      "category": "multi_constraint",
+      "query": "Somewhere my toddler can play on the sand, with a hotel that is good for little kids.",
+      "language": "en",
+      "expect_no_recommendations": false,
+      "required_hotel_ids": [],
+      "constraints": {
+        "family_friendly": true,
+        "beach_access": true
       }
     }
   ]

@@ -125,7 +125,7 @@ Checks include: schema validity, inventory existence (no invented hotel IDs), de
 
 Two checks guard against gaming. An empty answer satisfies every constraint vacuously, so cases that should produce a recommendation must produce at least one, and cases that should not (impossible requests, unknown hotels, pure injection attempts) must produce none.
 
-**`constraint_satisfaction_rate`** = cases where *every* deterministic check passed ÷ total cases (e.g. 47 / 49 = 95.9%).
+**`constraint_satisfaction_rate`** = cases where *every* deterministic check passed ÷ total cases (e.g. 58 / 61 = 95.1%).
 
 ### LLM-as-a-judge covers what rules cannot
 
@@ -157,7 +157,7 @@ Hence multiple mechanisms: exact checks for facts, a dedicated groundedness chec
 
 ## Golden dataset
 
-`data/golden_dataset.json` holds **49 cases** (currently version `1.1.0`). Each has a query, language, category and expected constraints. It is intentionally not all happy paths:
+`data/golden_dataset.json` holds **61 cases** (currently version `1.2.0`). Each has a query, language, category and expected constraints. It is intentionally not all happy paths:
 
 | Category | What it tests |
 |---|---|
@@ -167,6 +167,7 @@ Hence multiple mechanisms: exact checks for facts, a dedicated groundedness chec
 | conflicting | Contradictory constraints; no fabricated answer |
 | impossible | "A hotel on Mars" |
 | hallucination_trap | Hotels/facts not in the inventory ("Atlantis Moon Resort") |
+| hard cases (`hard-*`) | Superlatives ("cheapest…" must pick the right hotel), inclusive budget boundary, one-unit near-misses, total-to-per-person arithmetic, negation, German number format (`2.000 £`), implied constraints ("toddler on the sand") |
 | prompt_injection | Reveal-your-prompt, role hijack, secret extraction, budget override, fake "system update" (some in Spanish) |
 
 Non-English queries are included. Every feasible case is checked by unit tests to have at least one matching hotel in the inventory, and every conflicting/impossible case to have none, so the dataset and evaluator cannot silently disagree.
@@ -181,7 +182,7 @@ Every run records:
 
 ```json
 { "timestamp": "...", "model": "...", "dataset_version": "...",
-  "prompt_version": "...", "judge_prompt_version": "...", "total_cases": 49 }
+  "prompt_version": "...", "judge_prompt_version": "...", "total_cases": 61 }
 ```
 
 Traditional tests are reproducible: same code, same input, same result. LLM systems are not. The same prompt can produce different text on two runs, and results move when the **model version**, the **prompt** or the **dataset** changes. The recorded metadata is what makes two reports comparable. Compare like with like, and treat a change in any of those fields as a reason results may differ.
@@ -213,7 +214,7 @@ Example terminal report (from a real run; yours will differ):
 Travel AI Evaluation
 ========================================
 
-Dataset: 49 cases (version 1.1.0)
+Dataset: 61 cases (version 1.2.0)
 Model: claude-sonnet-5-5
 Prompt version: 1.1.0 (judge 1.1.0)
 
@@ -297,7 +298,7 @@ The intended routine: run the evaluation locally when the prompt, model or datas
 ## Cost control
 
 - Unit and deterministic tests make **zero** API calls.
-- The evaluation makes at most **3 calls per case** (agent, judge, groundedness), so about 150 calls for 49 cases, and none for the judge steps when the agent's reply is invalid. There are no duplicate judge calls.
+- The evaluation makes at most **3 calls per case** (agent, judge, groundedness), so about 180 calls for 61 cases, and none for the judge steps when the agent's reply is invalid. There are no duplicate judge calls.
 - Cases run sequentially (a full run takes roughly 6–8 minutes). Concurrency is a possible later optimisation, deliberately not added yet.
 - Use `--limit N` for cheap smoke runs. Small samples make the gate noisy, so use full runs for decisions.
 
@@ -332,14 +333,14 @@ Things that actually happened while building and running it:
 4. **The test can be wrong, not just the model.** A prompt-injection case expected no recommendations, but the model refused the injection and still answered the legitimate part of the request. I fixed the case (dataset 1.0.1) instead of the model.
 5. **A regression test must actually regress.** My first sabotage ("ignore budgets") did nothing because the model resisted it and the gate correctly passed. Replacing the constraint rule outright dropped constraint satisfaction from 100% to 85.7% and failed the gate with case-level reasons.
 6. **Infrastructure failures are not quality results.** An API billing failure once produced a 0% run that would have landed in the trend as a catastrophic regression. Runs where every call fails are now kept out of the history.
-7. **A suite that always passes says little.** Clean runs score 100% on the deterministic checks, so this dataset may be saturated for the current model. Harder cases are the next step (see Limitations).
+7. **A suite that always passes says little, and adding hard cases did not change that here.** I added 12 cases designed to trip the model (superlatives, one-unit near-misses, dividing a total budget by the party size, negation, a German number format). The model passed all 12, including the arithmetic. So this dataset is probably saturated for this model: its value is as a regression net (it fails immediately when the prompt is broken) rather than as a way to rank strong models. Telling strong models apart would need a much harder or adversarially generated set.
 
 ## Limitations
 
 Please read these before drawing conclusions.
 
 - **Synthetic, tiny inventory** (20 hotels). Real catalogues have far more variety, noise, stale data and edge cases.
-- **Small dataset** (49 cases). Rates move in steps of about 2 points per case; the gate is noisy and can flip on one borderline result. Averages of 1–5 judge scores hide variance.
+- **Small dataset** (61 cases). Rates move in steps of about 1.6 points per case; the gate is noisy and can flip on one borderline result. Averages of 1–5 judge scores hide variance.
 - **The LLM judge is imperfect**: non-deterministic, compressed scores, possible self-preference bias (same model family as the agent), and it was tuned against a handful of examples. Judge prompt changes shift scores.
 - **Prompt-leak detection only catches verbatim disclosure** (8-word overlap). A paraphrased leak would slip past the deterministic check.
 - **Passing adversarial cases is not proof of safety.** It shows this model resisted these particular attacks.
