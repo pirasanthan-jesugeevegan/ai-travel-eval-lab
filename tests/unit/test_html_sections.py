@@ -57,11 +57,10 @@ def test_gate_table_lists_every_check_with_a_result(good, bad):
 
 def test_categories_show_pass_counts_and_change_vs_previous(good, bad):
     cats = render_categories([good, bad])
-    assert "passed (latest run)" in cats.lower() or "Passed (latest run)" in cats
-    assert "✕" in cats and "▼ worse" in cats
+    assert "✕" in cats and "worse than before" in cats
     assert any(CATEGORY_HELP[c] in render_categories([good]) for c in CATEGORY_HELP if c in
                {x.category for x in good.cases})
-    assert "n/a" in render_categories([good])  # nothing to compare with
+    assert "no earlier run" in render_categories([good])  # nothing to compare with
 
 
 def test_unmeasured_items_are_honest_placeholders(good):
@@ -84,7 +83,7 @@ def test_variance_placeholder_flips_once_there_are_three_matching_runs(good):
 def test_summary_is_plain_english_and_escaped(good, bad):
     text = render_summary([good, bad])
     assert "Run #2 tested" in text and "fell" in text
-    assert "<" not in text.replace("<p class=\"summary\">", "").replace("</p>", "")
+    assert "<" not in text.replace('<p class="lede">', "").replace("</p>", "")
 
 
 def test_glossary_lists_each_metric_once(good):

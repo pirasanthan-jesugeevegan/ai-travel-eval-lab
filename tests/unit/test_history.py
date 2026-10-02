@@ -80,7 +80,7 @@ def test_html_empty_history_explains_how_to_start():
 
 def test_html_single_run_renders(good_run):
     page = render_html([summarise(good_run)])
-    assert "QUALITY GATE: PASS" in page and page.count("<svg") == 6
+    assert 'class="sign ok"' in page and "PASS" in page and page.count('class="panel"') == 6
     assert "first recorded run" in page
 
 
@@ -89,7 +89,7 @@ def test_html_regression_shows_fail_marker_delta_and_changes(good_run, bad_run):
     regressed = entry(bad_run, "regressed", prompt_version="9.9.9",
                       timestamp="2031-01-01T00:00:00+00:00")
     page = render_html([baseline, regressed], bad_run)
-    assert "QUALITY GATE: FAIL" in page and "Below threshold" in page
+    assert 'class="sign bad"' in page and "FAIL" in page and "Below threshold" in page
     assert "<polygon" in page  # diamond marker for the run below threshold
     assert "▼" in page and "vs previous run" in page
     assert 'class="chg"' in page  # version-change hairline in the chart / bold cell in table
@@ -125,7 +125,7 @@ def test_write_html_report_reads_history_and_latest(tmp_path, good_run):
     append_history(summarise(good_run, "x"), history)
     latest.write_text(good_run.model_dump_json())
     out = write_html_report(history, latest, tmp_path / "out" / "report.html")
-    assert "Travel AI evaluation: trends" in out.read_text()
+    assert "Travel AI Evaluation" in out.read_text()
 
 
 def test_save_run_outputs_writes_json_history_and_html(tmp_path, good_run):

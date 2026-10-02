@@ -27,7 +27,7 @@ SECTION_INTRO = {
     "so you can see what a change did. Hover or focus a run for details.",
     "categories": "Where do failures come from? Each row is a kind of request. The numbers are "
     "cases that passed every rule-based check. Compare the latest run with the one before it.",
-    "runs": "Every recorded run, newest first. Bold cells changed since the previous run, so this "
+    "runs": "Every recorded run, newest first. Highlighted cells changed since the previous run, so this "
     "is the place to match a drop in a metric to the change that caused it.",
     "configs": "Runs grouped by identical configuration (same model, prompts and dataset). The "
     "range shows how much the results move between runs that should be identical: LLMs are not "
@@ -42,12 +42,20 @@ SECTION_INTRO = {
 
 
 def intro(key: str) -> str:
-    return f'<p class="sub">{esc(SECTION_INTRO[key])}</p>'
+    return f'<p class="cap">{esc(SECTION_INTRO[key])}</p>'
+
+
+def fold(title: str, inner: str, open_: bool = False) -> str:
+    """A collapsible reference block. Open by default only for what a reader most needs."""
+    return (
+        f'<details class="fold"{" open" if open_ else ""}><summary><span>{esc(title)}</span></summary>'
+        f'<div class="inner">{inner}</div></details>'
+    )
 
 
 def render_how_to_read() -> str:
     return (
-        '<details class="box" open><summary><b>How to read this page</b></summary><ol>'
+        '<details class="help"><summary>How to read this page</summary><ol>'
         "<li>This project tests a travel assistant (an LLM) against a fixed set of questions with "
         "known right answers. Each <b>run</b> asks every question once and scores the replies.</li>"
         "<li><b>Rule-based</b> metrics are exact checks (is the price within budget? does the "
@@ -93,7 +101,13 @@ def render_summary(entries: list[HistoryEntry]) -> str:
         )
     else:
         text += " This is the first recorded run, so there is nothing to compare with yet."
-    return f'<p class="summary">{esc(text)}</p>'
+    return f'<p class="lede">{esc(text)}</p>'
+
+
+def _meter(fraction: float, required: float | None = None, miss: bool = False) -> str:
+    pct = max(0.0, min(1.0, fraction)) * 100
+    tick = f'<b class="req" style="left:{required * 100:.1f}%"></b>' if required is not None else ""
+    return f'<div class="meter" aria-hidden="true"><i class="{"miss" if miss else ""}" style="width:{pct:.1f}%"></i>{tick}</div>'
 
 
 def render_gate_table(last: HistoryEntry) -> str:
@@ -109,10 +123,13 @@ def render_gate_table(last: HistoryEntry) -> str:
             else "Share of cases the LLM judge managed to score. Stops failed judge calls from "
             "quietly shrinking the sample behind the averages."
         )
-        status = '<span class="pass">✓ PASS</span>' if c.passed else '<span class="fail">✕ FAIL</span>'
+        scale = (lambda v: v) if is_rate else (lambda v: (v - 1) / 4)  # 1-5 score -> 0-1 bar
+        actual = scale(c.actual) if c.actual is not None else 0.0
+        status = '<span class="chip pass">✓ PASS</span>' if c.passed else '<span class="chip fail">✕ FAIL</span>'
         rows.append(
-            f"<tr><td>{esc(label)}</td><td class='num'>≥ {fmt(c.threshold, is_rate)}</td>"
-            f"<td class='num'>{fmt(c.actual, is_rate)}</td><td>{status}</td>"
+            f"<tr><td><b>{esc(label)}</b></td><td class='num'>≥ {fmt(c.threshold, is_rate)}</td>"
+            f"<td class='num'><div class='mini-meter'>{fmt(c.actual, is_rate)}"
+            f"{_meter(actual, scale(c.threshold), miss=not c.passed)}</div></td><td>{status}</td>"
             f"<td class='wrap'>{esc(meaning)}</td></tr>"
         )
     return (
@@ -136,23 +153,23 @@ def render_categories(entries: list[HistoryEntry]) -> str:
     rows = []
     for cat in sorted(cur, key=lambda c: (cur[c][0] / cur[c][1], c)):
         ok, total = cur[cat]
-        change = ""
+        change = '<span class="note">no earlier run</span>'
         if cat in prev:
             pok, ptotal = prev[cat]
             diff = ok / total - pok / ptotal
-            change = "▲ better" if diff > 0.0001 else "▼ worse" if diff < -0.0001 else "— same"
-        cls = "pass" if ok == total else "fail"
-        mark = "✓" if ok == total else "✕"
+            change = (
+                '<span class="delta up">▲ better than before</span>' if diff > 0.0001
+                else '<span class="delta down">▼ worse than before</span>' if diff < -0.0001
+                else '<span class="delta flat">same as before</span>'
+            )
+        cls, mark = ("pass", "✓") if ok == total else ("fail", "✕")
+        miss = f'<i class="miss" style="width:{(total - ok) / total * 100:.1f}%"></i>' if ok < total else ""
         rows.append(
-            f"<tr><td>{esc(cat.replace('_', ' '))}</td><td class='wrap'>{esc(CATEGORY_HELP.get(cat, ''))}</td>"
-            f"<td class='num'><span class='{cls}'>{mark} {ok}/{total}</span></td>"
-            f"<td>{esc(change) or '<span class=note>n/a</span>'}</td></tr>"
+            f'<div class="cat"><div><b>{esc(cat.replace("_", " "))}</b><small>{esc(CATEGORY_HELP.get(cat, ""))}</small></div>'
+            f'<div class="meter" aria-hidden="true"><i style="width:{ok / total * 100:.1f}%"></i>{miss}</div>'
+            f'<div class="n"><span class="{cls}">{mark} {ok}/{total}</span></div><div class="st">{change}</div></div>'
         )
-    return (
-        '<div class="tablewrap"><table><thead><tr><th>Category</th><th>What it tests</th>'
-        "<th>Passed (latest run)</th><th>vs previous run</th></tr></thead><tbody>"
-        + "".join(rows) + "</tbody></table></div>"
-    )
+    return f'<div class="cats">{"".join(rows)}</div>'
 
 
 def render_not_measured(entries: list[HistoryEntry]) -> str:
@@ -199,8 +216,9 @@ def render_glossary() -> str:
 
 def render_single_run_note() -> str:
     return (
-        '<p class="box note-box">Only one run is recorded, so there is no trend to draw yet. '
+        '<p class="empty">Only one run is recorded, so there is no trend to draw yet. '
         "Run the evaluation again after a change to the prompt, model or dataset and the charts "
         "will fill in.</p>"
     )
+
 
