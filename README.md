@@ -306,6 +306,8 @@ The intended routine: run the evaluation locally when the prompt, model or datas
 
 API failures, rate limits (the SDK retries with backoff), timeouts, refusals, truncated output, invalid JSON, schema failures, missing inventory and missing API key are all handled. A bad model reply is **recorded as a failed case, not raised**; unexpected exceptions are contained per case, so one failure never aborts the run.
 
+For how the code is organised, the life of a test case and the design trade-offs, see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+
 ## Project layout
 
 ```
