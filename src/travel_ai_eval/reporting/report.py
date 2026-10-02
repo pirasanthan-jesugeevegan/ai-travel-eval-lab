@@ -3,28 +3,16 @@
 from dataclasses import dataclass
 from pathlib import Path
 
-from travel_ai_eval.config import REPORTS_DIR
+from travel_ai_eval.config import LATEST_PATH, REPORTS_DIR
 from travel_ai_eval.models.results import GateCheck, RunMetrics, RunResult
 from travel_ai_eval.reporting.history import append_history, is_api_outage, summarise
 from travel_ai_eval.reporting.html_report import write_html_report
-
-LATEST_PATH = REPORTS_DIR / "latest.json"
-BASELINE_PATH = REPORTS_DIR / "baseline.json"
+from travel_ai_eval.reporting.metrics import METRICS, fmt
 
 _HEAVY = "=" * 40
 _LIGHT = "-" * 40
 _TOLERANCE = 0.005  # differences smaller than this are shown as unchanged
 
-# (metric attribute, label, is a 0-1 rate)
-_METRICS: list[tuple[str, str, bool]] = [
-    ("schema_validity", "Schema validity", True),
-    ("constraint_satisfaction", "Constraint satisfaction", True),
-    ("inventory_accuracy", "Inventory accuracy", True),
-    ("avg_relevance", "Relevance", False),
-    ("avg_groundedness", "Groundedness", False),
-    ("avg_helpfulness", "Helpfulness", False),
-    ("avg_instruction_following", "Instruction following", False),
-]
 _GATE_LABELS = {
     "schema_validity": ("Schema validity", True),
     "constraint_satisfaction": ("Constraints", True),
@@ -52,30 +40,24 @@ class MetricDelta:
         return "↑" if diff > 0 else "↓"
 
 
-def _fmt(value: float | None, is_rate: bool) -> str:
-    if value is None:
-        return "n/a"
-    return f"{value * 100:.1f}%" if is_rate else f"{value:.2f}"
-
-
 def compare_runs(baseline: RunResult, current: RunResult) -> list[MetricDelta]:
     return [
         MetricDelta(
-            label,
-            getattr(baseline.metrics, attr),
-            getattr(current.metrics, attr),
-            is_rate,
+            m.label,
+            getattr(baseline.metrics, m.attr),
+            getattr(current.metrics, m.attr),
+            m.is_rate,
         )
-        for attr, label, is_rate in _METRICS
+        for m in METRICS
     ]
 
 
 def _metrics_section(m: RunMetrics) -> list[str]:
     def line(label: str, value: float | None, is_rate: bool) -> str:
-        shown = _fmt(value, True) if is_rate else (f"{value:.2f} / 5" if value is not None else "n/a")
+        shown = fmt(value, True) if is_rate else (f"{value:.2f} / 5" if value is not None else "n/a")
         return f"{label + ':':<28}{shown:>10}"
 
-    labels = {attr: (label, is_rate) for attr, label, is_rate in _METRICS}
+    labels = {m.attr: (m.label, m.is_rate) for m in METRICS}
 
     def rows(attrs: list[str]) -> list[str]:
         return [line(labels[a][0], getattr(m, a), labels[a][1]) for a in attrs]
@@ -119,7 +101,7 @@ def _comparison_lines(baseline: RunResult, current: RunResult) -> list[str]:
     lines.append(f"{'':<28}{'Baseline':>10}{'Current':>10}")
     for d in compare_runs(baseline, current):
         arrow = f"  {d.direction}" if d.direction else ""
-        lines.append(f"{d.label:<28}{_fmt(d.baseline, d.is_rate):>10}{_fmt(d.current, d.is_rate):>10}{arrow}")
+        lines.append(f"{d.label:<28}{fmt(d.baseline, d.is_rate):>10}{fmt(d.current, d.is_rate):>10}{arrow}")
     return lines
 
 
@@ -129,7 +111,8 @@ def format_terminal_report(run: RunResult, baseline: RunResult | None = None) ->
         _HEAVY, "Travel AI Evaluation", _HEAVY, "",
         f"Dataset: {meta.total_cases} cases (version {meta.dataset_version})",
         f"Model: {meta.model}",
-        f"Prompt version: {meta.prompt_version} (judge {meta.judge_prompt_version})",
+        f"Prompt version: {meta.prompt_version} "
+        f"(judge {meta.judge_prompt_version}, groundedness {meta.groundedness_prompt_version})",
         f"Run at: {meta.timestamp}", "",
         *_metrics_section(run.metrics), "",
         "Quality Gates", _LIGHT,

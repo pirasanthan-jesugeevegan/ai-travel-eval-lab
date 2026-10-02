@@ -80,6 +80,12 @@ details { margin-top: 8px; } summary { cursor: pointer; color: var(--ink-2); fon
   padding: 8px 10px; font-size: 12px; box-shadow: 0 4px 16px rgba(0,0,0,0.18); }
 #tip .t-title { color: var(--ink-2); } #tip .t-value { font-size: 15px; font-weight: 600; margin: 2px 0; }
 #tip .t-line { color: var(--ink-2); }
+.box { background: var(--surface); border: 1px solid var(--ring); border-radius: 8px; padding: 10px 14px; margin: 12px 0; }
+.box ol { margin: 8px 0 4px; padding-left: 20px; } .box li { margin: 4px 0; color: var(--ink-2); }
+.note-box { color: var(--ink-2); }
+.summary { font-size: 15px; margin: 12px 0 16px; }
+.badge { font-size: 10px; color: var(--ink-2); border: 1px solid var(--axis); border-radius: 4px; padding: 0 4px; margin-left: 4px; }
+.todo { font-weight: 600; color: var(--ink-2); border: 1px dashed var(--axis); border-radius: 4px; padding: 0 6px; }
 @media (max-width: 480px) { .verdict .big { font-size: 18px; } }
 """
 

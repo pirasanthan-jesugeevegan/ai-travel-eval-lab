@@ -1,39 +1,24 @@
-"""Shared pieces of the HTML report: metric panels, formatting and tooltip helpers."""
+"""Shared pieces of the HTML report: chart order, escaping, tooltip helpers."""
 
 import html
 import json
-from dataclasses import dataclass
 from datetime import datetime
 
 from travel_ai_eval.reporting.history import HistoryEntry
+from travel_ai_eval.reporting.metrics import METRIC_BY_ATTR, fmt
 
-
-@dataclass(frozen=True)
-class Panel:
-    attr: str  # RunMetrics field
-    label: str
-    is_rate: bool
-    gate: str | None  # matching GateCheck name, if the metric is gated
-
-
+# Order of the trend charts (the first five are the gated metrics).
 PANELS = [
-    Panel("constraint_satisfaction", "Constraint satisfaction", True, "constraint_satisfaction"),
-    Panel("schema_validity", "Schema validity", True, "schema_validity"),
-    Panel("avg_relevance", "Relevance", False, "relevance"),
-    Panel("avg_groundedness", "Groundedness", False, "groundedness"),
-    Panel("avg_helpfulness", "Helpfulness", False, "helpfulness"),
-    Panel("avg_instruction_following", "Instruction following", False, None),
+    METRIC_BY_ATTR[a]
+    for a in (
+        "constraint_satisfaction", "schema_validity", "avg_relevance",
+        "avg_groundedness", "avg_helpfulness", "avg_instruction_following",
+    )
 ]
 
 
 def esc(text: object) -> str:
     return html.escape(str(text), quote=True)
-
-
-def fmt(value: float | None, is_rate: bool) -> str:
-    if value is None:
-        return "n/a"
-    return f"{value * 100:.1f}%" if is_rate else f"{value:.2f}"
 
 
 def when(ts: str) -> str:
@@ -51,7 +36,8 @@ def run_lines(e: HistoryEntry, changed: list[str]) -> list[str]:
     m = e.metadata
     lines = [
         m.model,
-        f"prompt {m.prompt_version} · judge {m.judge_prompt_version} · dataset {m.dataset_version}",
+        f"prompt {m.prompt_version} · judge {m.judge_prompt_version} · "
+        f"groundedness {m.groundedness_prompt_version} · dataset {m.dataset_version}",
     ]
     if e.label:
         lines.append(e.label)
@@ -63,3 +49,6 @@ def run_lines(e: HistoryEntry, changed: list[str]) -> list[str]:
 
 def metric_value(e: HistoryEntry, attr: str) -> float | None:
     return getattr(e.metrics, attr)
+
+
+__all__ = ["PANELS", "esc", "fmt", "metric_value", "run_lines", "tip_attr", "when"]

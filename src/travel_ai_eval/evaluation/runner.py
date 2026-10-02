@@ -10,12 +10,8 @@ from pathlib import Path
 
 from travel_ai_eval.ai.prompts import PROMPT_VERSION
 from travel_ai_eval.ai.provider import AnthropicProvider, LLMProvider
-from travel_ai_eval.ai.travel_agent import (
-    AgentOutcome,
-    TravelAgent,
-    select_relevant_inventory,
-)
-from travel_ai_eval.config import MissingAPIKeyError, load_settings
+from travel_ai_eval.ai.travel_agent import TravelAgent, select_relevant_inventory
+from travel_ai_eval.config import BASELINE_PATH, MissingAPIKeyError, load_settings
 from travel_ai_eval.data import load_dataset, load_inventory
 from travel_ai_eval.evaluation.deterministic import (
     constraint_satisfaction_rate,
@@ -23,7 +19,7 @@ from travel_ai_eval.evaluation.deterministic import (
     inventory_accuracy_rate,
     schema_validity_rate,
 )
-from travel_ai_eval.evaluation.groundedness import check_groundedness
+from travel_ai_eval.evaluation.groundedness import GROUNDEDNESS_PROMPT_VERSION, check_groundedness
 from travel_ai_eval.evaluation.llm_judge import JUDGE_PROMPT_VERSION, judge_response
 from travel_ai_eval.evaluation.thresholds import Thresholds, evaluate_gate
 from travel_ai_eval.models.results import CaseResult, RunMetadata, RunMetrics, RunResult
@@ -34,7 +30,6 @@ from travel_ai_eval.models.schemas import (
     InventoryItem,
 )
 from travel_ai_eval.reporting.report import (
-    BASELINE_PATH,
     format_terminal_report,
     load_report,
     save_run_outputs,
@@ -74,15 +69,15 @@ def evaluate_one(
 
 
 def _crashed(case: GoldenCase, exc: Exception) -> CaseResult:
+    """Record an unexpected exception as a failed case so the rest of the run continues."""
     reason = f"{type(exc).__name__}: {exc}"
-    outcome = AgentOutcome(None, "", f"runner_error: {reason}")
     return CaseResult(
         case_id=case.id,
         category=case.category,
         query=case.query,
         response=None,
         raw_output="",
-        agent_error=outcome.error,
+        agent_error=f"runner_error: {reason}",
         deterministic=EvalResult(
             checks=[CheckResult(name="schema_validity", passed=False, reason=reason)]
         ),
@@ -139,6 +134,7 @@ def run_evaluation(
             dataset_version=dataset_version,
             prompt_version=PROMPT_VERSION,
             judge_prompt_version=JUDGE_PROMPT_VERSION,
+            groundedness_prompt_version=GROUNDEDNESS_PROMPT_VERSION,
             total_cases=len(cases),
         ),
         metrics=metrics,

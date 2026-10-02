@@ -9,10 +9,9 @@ Every chart has a table-view twin further down the page.
 import sys
 from pathlib import Path
 
-from travel_ai_eval.config import REPORTS_DIR
+from travel_ai_eval.config import HISTORY_PATH, HTML_PATH, LATEST_PATH
 from travel_ai_eval.models.results import RunResult
 from travel_ai_eval.reporting.history import (
-    HISTORY_PATH,
     HistoryEntry,
     changes_vs_previous,
     load_history,
@@ -20,7 +19,6 @@ from travel_ai_eval.reporting.history import (
 from travel_ai_eval.reporting.html_assets import CSS, JS
 from travel_ai_eval.reporting.html_common import (
     PANELS,
-    Panel,
     esc,
     fmt,
     metric_value,
@@ -28,15 +26,24 @@ from travel_ai_eval.reporting.html_common import (
     tip_attr,
     when,
 )
+from travel_ai_eval.reporting.html_sections import (
+    intro,
+    render_categories,
+    render_gate_table,
+    render_glossary,
+    render_how_to_read,
+    render_not_measured,
+    render_single_run_note,
+    render_summary,
+)
 from travel_ai_eval.reporting.html_tables import (
     render_configs,
     render_failures,
     render_matrix,
     render_runs_table,
 )
+from travel_ai_eval.reporting.metrics import Metric
 
-HTML_PATH = REPORTS_DIR / "report.html"
-LATEST_PATH = REPORTS_DIR / "latest.json"
 _EPS = 1e-9
 
 # chart geometry (SVG user units)
@@ -59,7 +66,7 @@ def _range(values: list[float], is_rate: bool) -> tuple[float, float]:
     return (lo if lo < 4.5 else 4.0), 5.0
 
 
-def render_panel(p: Panel, entries: list[HistoryEntry], changes: list[list[str]]) -> str:
+def render_panel(p: Metric, entries: list[HistoryEntry], changes: list[list[str]]) -> str:
     n = len(entries)
     thr = _threshold(entries, p.gate)
     vals = [v for e in entries if (v := metric_value(e, p.attr)) is not None]
@@ -156,7 +163,8 @@ def render_tiles(entries: list[HistoryEntry]) -> str:
             else:
                 delta = f'<span class="delta down">▼ {text} vs previous run</span>'
         tiles.append(
-            f'<div class="tile"><div class="label">{esc(p.label)}</div>'
+            f'<div class="tile" title="{esc(p.meaning)}"><div class="label">{esc(p.label)} '
+            f'<span class="badge">{esc(p.kind)}</span></div>'
             f'<div class="value">{fmt(v, p.is_rate)}</div>'
             f'<div class="status">{status} · required {req}</div><div>{delta}</div></div>'
         )
@@ -191,26 +199,50 @@ def render_html(entries: list[HistoryEntry], latest: RunResult | None = None) ->
     )
     body = [
         "<h1>Travel AI evaluation: trends</h1>",
-        f"<p class='sub'>{len(entries)} recorded run(s). Newest first in the tables; oldest to newest in the charts.</p>",
+        f"<p class='sub'>{len(entries)} recorded run(s) of a travel-assistant test suite. "
+        "Newest first in the tables; oldest to newest in the charts.</p>",
         f"<div class='verdict'>{verdict}<span>{why}</span>"
         f"<span class='note'>Run #{len(entries)} · {esc(when(m.timestamp))} UTC · {esc(m.model)} · "
         f"prompt {esc(m.prompt_version)} · dataset {esc(m.dataset_version)} · {m.total_cases} cases"
         f"{' · ' + esc(last.label) if last.label else ''}</span></div>",
+        render_how_to_read(),
+        render_summary(entries),
         render_tiles(entries),
+        "<h2>Quality gate: why PASS or FAIL</h2>",
+        intro("gate"),
+        render_gate_table(last),
         "<h2>Trends</h2>",
-        "<p class='sub'>One chart per metric, each on its own scale, with the required threshold drawn on it. "
-        "Vertical hairlines mark a change of model, prompt or dataset version between two runs.</p>",
-        '<p class="legend">● at or above threshold · <span class="diamond">◆</span> below threshold · hover or focus a run for details</p>',
+        intro("trends"),
+        render_single_run_note() if len(entries) == 1 else "",
+        '<p class="legend">● at or above threshold · <span class="diamond">◆</span> below threshold</p>',
         f'<div class="panels">{"".join(render_panel(p, entries, changes) for p in PANELS)}</div>',
+        "<h2>Results by category</h2>",
+        intro("categories"),
+        render_categories(entries),
         "<h2>What changed, run by run</h2>",
+        intro("runs"),
         render_runs_table(entries, changes),
         "<h2>Results by configuration</h2>",
+        intro("configs"),
         render_configs(entries),
         "<h2>Case stability</h2>",
+        intro("stability"),
         render_matrix(entries, changes),
     ]
-    if latest is not None:
-        body += [f"<h2>Failures in the latest full run ({esc(when(latest.metadata.timestamp))})</h2>", render_failures(latest)]
+    if latest is not None and latest.metadata.timestamp == m.timestamp:
+        body += [
+            f"<h2>Failures in the latest run ({esc(when(m.timestamp))})</h2>",
+            intro("failures"),
+            render_failures(latest),
+        ]
+    body += [
+        "<h2>Not measured yet</h2>",
+        intro("unmeasured"),
+        render_not_measured(entries),
+        "<h2>What the metrics mean</h2>",
+        intro("glossary"),
+        render_glossary(),
+    ]
     return head + "".join(body) + tail
 
 

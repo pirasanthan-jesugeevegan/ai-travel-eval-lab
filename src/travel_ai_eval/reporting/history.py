@@ -11,14 +11,18 @@ from pathlib import Path
 
 from pydantic import BaseModel, ValidationError
 
-from travel_ai_eval.config import PROJECT_ROOT, REPORTS_DIR
+from travel_ai_eval.config import HISTORY_PATH, PROJECT_ROOT
 from travel_ai_eval.models.results import GateResult, RunMetadata, RunMetrics, RunResult
-
-HISTORY_PATH = REPORTS_DIR / "history.jsonl"
 
 # A change in any of these can move every metric, so runs are only strictly comparable
 # when they match.
-SIGNATURE_FIELDS = ("model", "prompt_version", "judge_prompt_version", "dataset_version")
+SIGNATURE_FIELDS = (
+    "model",
+    "prompt_version",
+    "judge_prompt_version",
+    "groundedness_prompt_version",
+    "dataset_version",
+)
 
 
 class CaseSummary(BaseModel):

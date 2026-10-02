@@ -10,6 +10,10 @@ DEFAULT_MODEL = "claude-sonnet-5-5"
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 DATA_DIR = PROJECT_ROOT / "data"
 REPORTS_DIR = PROJECT_ROOT / "reports"
+LATEST_PATH = REPORTS_DIR / "latest.json"  # most recent run, full detail (git-ignored)
+BASELINE_PATH = REPORTS_DIR / "baseline.json"  # a known-good run to compare against
+HISTORY_PATH = REPORTS_DIR / "history.jsonl"  # one summary line per run, for trends
+HTML_PATH = REPORTS_DIR / "report.html"  # generated trend report
 
 
 class MissingAPIKeyError(RuntimeError):

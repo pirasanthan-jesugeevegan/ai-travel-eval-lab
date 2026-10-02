@@ -18,6 +18,7 @@ class RunMetadata(BaseModel):
     dataset_version: str
     prompt_version: str
     judge_prompt_version: str
+    groundedness_prompt_version: str = "1.0.0"  # default: runs recorded before this field existed
     total_cases: int
 
 

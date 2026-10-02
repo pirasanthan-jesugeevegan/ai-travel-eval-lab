@@ -72,7 +72,7 @@ def render_configs(entries: list[HistoryEntry]) -> str:
                 )
         passed = sum(e.gate.passed for e in es)
         rows.append(
-            f"<tr><td class='wrap'>{esc(sig[0])}<br>prompt {esc(sig[1])} · judge {esc(sig[2])} · dataset {esc(sig[3])}</td>"
+            f"<tr><td class='wrap'>{esc(sig[0])}<br>prompt {esc(sig[1])} · judge {esc(sig[2])} · groundedness {esc(sig[3])} · dataset {esc(sig[4])}</td>"
             f"<td class='num'>{len(es)}</td><td class='num'>{passed}/{len(es)}</td>{''.join(cells)}</tr>"
         )
     head = "".join(f"<th>{h}</th>" for h in ["Configuration", "Runs", "Gate passed"] + [p.label for p in cols])

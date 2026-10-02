@@ -9,11 +9,10 @@ import os
 import pytest
 
 from travel_ai_eval.ai.provider import AnthropicProvider
-from travel_ai_eval.config import load_settings
+from travel_ai_eval.config import BASELINE_PATH, load_settings
 from travel_ai_eval.data import load_dataset, load_inventory
 from travel_ai_eval.evaluation.runner import run_evaluation
 from travel_ai_eval.reporting.report import (
-    BASELINE_PATH,
     format_terminal_report,
     load_report,
     save_run_outputs,
